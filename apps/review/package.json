@@ -1,0 +1,8 @@
+{
+  "name": "review",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "node -e \"console.error('review app is built at acceptance test A7 — not implemented yet'); process.exit(1)\""
+  }
+}

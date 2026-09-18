@@ -7,10 +7,12 @@ system: >
   composition. No brand names as text-in-image, no logos rendered, no watermarks.
 template: >
   {{style_description}}. Featuring {{product_name}} by {{brand_name}} ({{category}}).
+  {{template_image_directive}} {{product_image_note}}
   Mood: {{tone}}. The scene expresses: "{{hook}}". Creative angle: {{angle}}.
   Editorial product photography, natural directional light, shallow depth of field,
   colours drawn from the brand palette {{palette}}. Composed for {{platform}} at
   {{aspect}}. High detail, photoreal, no text, no logo, no watermark.
 negative: >
   text, watermark, logo, caption, extra fingers, deformed hands, distorted proportions,
-  low resolution, jpeg artefacts, oversaturated, plastic skin, {{banned_visuals}}
+  low resolution, jpeg artefacts, oversaturated, plastic skin, {{banned_visuals}},
+  {{template_negative}}

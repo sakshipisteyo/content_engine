@@ -1,0 +1,16 @@
+key: carousel
+name: Carousel (slides)
+description: A multi-slide image set — "ways to wear / use it".
+format: image
+platform: instagram
+aspect: "1:1"
+mode: slides
+default_variants: 3
+default_credit_cap: 24
+uses_product_image: true
+image_directive: >
+  One slide of a cohesive carousel about {{product_name}}: a distinct styling or use-case
+  per slide, consistent brand palette and light across slides, clean space for a caption.
+copy_style: >
+  Numbered and skimmable; each line one idea; the final slide is a CTA.
+negative_extra: inconsistent style between slides, clashing colours

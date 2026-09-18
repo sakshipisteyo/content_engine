@@ -60,9 +60,37 @@ export const BriefSchema = z
     style_anchor: z.string().min(1),
     variants: z.number().int().min(1).max(10),
     credit_cap: z.number().nonnegative(),
+    /** Ad-type template this job was created from (templates/<key>.yaml). */
+    template: z.string().optional(),
+    /** Uploaded product image (path under brand assets or uploads/), the hero subject. */
+    product_image: z.string().optional(),
   })
   .strict();
 export type Brief = z.infer<typeof BriefSchema>;
+
+/** Ad-type template — a reusable recipe (UGC ad, product hero, carousel, founder story). */
+export const TemplateMode = z.enum(["variants", "slides"]);
+export type TemplateMode = z.infer<typeof TemplateMode>;
+
+export const TemplateSchema = z
+  .object({
+    key: z.string().min(1),
+    name: z.string().min(1),
+    description: z.string().default(""),
+    format: Format,
+    platform: Platform,
+    aspect: Aspect.optional(),
+    mode: TemplateMode.default("variants"),
+    default_variants: z.number().int().min(1).max(10),
+    default_credit_cap: z.number().nonnegative(),
+    uses_product_image: z.boolean().default(true),
+    image_directive: z.string().default(""),
+    video_directive: z.string().default(""),
+    copy_style: z.string().default(""),
+    negative_extra: z.string().default(""),
+  })
+  .strict();
+export type Template = z.infer<typeof TemplateSchema>;
 
 /* ------------------------------------------------------------------ Brand */
 

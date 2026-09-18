@@ -7,6 +7,7 @@ template: >
   Brand: {{brand_name}} — {{category}}. Audience: {{audience}}. Tone: {{tone}}.
   Platform: {{platform}}. Product: {{product_name}}.
   Hook: "{{hook}}". Angle: {{angle}}. Call to action: "{{cta}}".
+  Copy style: {{template_copy_style}}
   Banned words (never use): {{banned_words}}.
   Write: a caption (<= 300 characters), 5-8 hashtags, and — only for video — a spoken
   voiceover script of 2-3 sentences (<= 55 words) that lands the hook and the CTA.

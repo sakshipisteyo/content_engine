@@ -1,0 +1,16 @@
+key: product-hero
+name: Product Hero (Image)
+description: A single striking, on-brand product still for feed and ads.
+format: image
+platform: instagram
+aspect: "4:5"
+mode: variants
+default_variants: 3
+default_credit_cap: 20
+uses_product_image: true
+image_directive: >
+  Editorial product hero: {{product_name}} as the clear subject, considered composition,
+  brand-palette surfaces and props, soft directional light, shallow depth of field.
+copy_style: >
+  Confident, minimal, brand-led. One evocative line and a CTA.
+negative_extra: cluttered, busy background, harsh flash

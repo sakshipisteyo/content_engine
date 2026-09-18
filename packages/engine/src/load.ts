@@ -3,7 +3,7 @@
  * throws a ConfigError (naming the file) on failure. loadAllBriefs collects per-file
  * errors so the CLI can report them all, then stop (SPEC section 4 / section 10 step 3).
  */
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { basename, join } from "node:path";
 import {
   BrandSchema,
@@ -11,11 +11,13 @@ import {
   RoutesSchema,
   PromptsFileSchema,
   ScoreConfigSchema,
+  TemplateSchema,
   type Brand,
   type Brief,
   type Routes,
   type PromptsFile,
   type ScoreConfig,
+  type Template,
   type Versions,
 } from "./schemas";
 import {
@@ -44,8 +46,34 @@ export function loadScoreConfig(): ScoreConfig {
   return loadYaml(join(PATHS.prompts, "score.yaml"), ScoreConfigSchema);
 }
 
+export function templateFile(key: string): string {
+  return join(PATHS.templates, `${key}.yaml`);
+}
+
+export function loadTemplate(key: string): Template {
+  return loadYaml(templateFile(key), TemplateSchema);
+}
+
+/** List available ad-type templates (by key), sorted. */
+export function listTemplates(): Template[] {
+  if (!existsSync(PATHS.templates)) return [];
+  return readdirSync(PATHS.templates)
+    .filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"))
+    .map((f) => loadYaml<Template>(join(PATHS.templates, f), TemplateSchema))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export function brandFile(brandKey: string): string {
   return join(PATHS.brand, `${brandKey}.yaml`);
+}
+
+/** List available brand keys (from brand/<key>.yaml), sorted. */
+export function listBrandKeys(): string[] {
+  if (!existsSync(PATHS.brand)) return [];
+  return readdirSync(PATHS.brand)
+    .filter((f) => f.endsWith(".yaml") || f.endsWith(".yml"))
+    .map((f) => f.replace(/\.ya?ml$/, ""))
+    .sort();
 }
 
 export function loadBrand(brandKey: string): Brand {

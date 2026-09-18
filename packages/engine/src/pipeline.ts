@@ -18,11 +18,13 @@ import {
   type Shot,
   type RubricResult,
   type StageName,
+  type Template,
   RubricResultSchema,
   CROP_ASPECTS,
 } from "./schemas";
 import { PATHS } from "./config";
 import { compileBase, type CompilePrompts, brandAssetPath } from "./compile";
+import { loadTemplate } from "./load";
 import { loadBrandMemory } from "./memory";
 import { openLedger, now, type Ledger } from "./ledger";
 import * as higgs from "./providers/higgsfield";
@@ -115,7 +117,7 @@ function record(
 const elapsed = (start: number) => (Date.now() - start) / 1000;
 
 /** Build the PromptPlan and persist it. Records the compile stage row once. */
-function stageCompile(ctx: PipelineCtx, brief: Brief): PromptPlan {
+function stageCompile(ctx: PipelineCtx, brief: Brief, template?: Template): PromptPlan {
   const plan = compileBase({
     brief,
     brand: ctx.brand,
@@ -124,6 +126,7 @@ function stageCompile(ctx: PipelineCtx, brief: Brief): PromptPlan {
     versions: ctx.versions,
     brandKey: ctx.brandKey,
     memory: loadBrandMemory(ctx.brandKey, ctx.ledger),
+    template,
   });
   mkdirSync(briefDir(brief.id), { recursive: true });
   writeFileSync(join(briefDir(brief.id), "prompt.json"), JSON.stringify(plan, null, 2));
@@ -398,7 +401,8 @@ export async function runBrief(
   ctx: PipelineCtx,
   brief: Brief,
 ): Promise<BriefResult> {
-  const plan = stageCompile(ctx, brief);
+  const template = brief.template ? loadTemplate(brief.template) : undefined;
+  const plan = stageCompile(ctx, brief, template);
 
   const heroRes = await stageHero(ctx, brief, plan);
   if (heroRes.generated.length === 0) {
@@ -422,7 +426,7 @@ export async function runBrief(
   }
 
   // Copy (stage 5) — Claude, with a single banned-word retry.
-  await stageCopy(ctx, brief, plan);
+  await stageCopy(ctx, brief, plan, template);
 
   // Voice (stage 6) — ElevenLabs, video only; on error continue + flag.
   if (brief.format === "video") {
@@ -443,13 +447,19 @@ export async function runBrief(
   };
 }
 
-async function stageCopy(ctx: PipelineCtx, brief: Brief, plan: PromptPlan): Promise<void> {
+async function stageCopy(
+  ctx: PipelineCtx,
+  brief: Brief,
+  plan: PromptPlan,
+  template?: Template,
+): Promise<void> {
   const start = Date.now();
+  const copyStyle = template?.copy_style ?? "";
   try {
-    let copy = await refineCopy(ctx.brand, brief, ctx.prompts.copy, ctx.routes.copy.model);
+    let copy = await refineCopy(ctx.brand, brief, ctx.prompts.copy, ctx.routes.copy.model, copyStyle);
     let banned = hasBannedWord(copy, ctx.brand.banned_words);
     if (banned) {
-      copy = await refineCopy(ctx.brand, brief, ctx.prompts.copy, ctx.routes.copy.model);
+      copy = await refineCopy(ctx.brand, brief, ctx.prompts.copy, ctx.routes.copy.model, copyStyle);
       banned = hasBannedWord(copy, ctx.brand.banned_words);
     }
     plan.copy = copy;

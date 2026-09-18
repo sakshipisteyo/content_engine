@@ -5,8 +5,9 @@ system: >
   no text, no new objects that were not in the still.
 template: >
   Gentle cinematic motion for: "{{hook}}". {{camera}}. Subject: {{product_name}}.
+  {{template_video_directive}}
   Preserve the framing and palette of the still. Natural light shift, soft parallax,
   {{angle}}. Smooth, premium, unhurried. No text, no logo, no scene cuts.
 negative: >
   text, watermark, logo, warping, morphing, flicker, jitter, extra limbs, scene cut,
-  {{banned_visuals}}
+  {{banned_visuals}}, {{template_negative}}

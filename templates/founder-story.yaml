@@ -1,0 +1,17 @@
+key: founder-story
+name: Founder / Brand Story
+description: A narrative LinkedIn post in a professional register.
+format: image
+platform: linkedin
+aspect: "1:1"
+mode: variants
+default_variants: 2
+default_credit_cap: 16
+uses_product_image: false
+image_directive: >
+  Documentary, human, behind-the-scenes feel around {{product_name}} and its makers;
+  warm, honest, editorial; real hands and materials, not glossy advertising.
+copy_style: >
+  Reflective first-person founder voice; a short story with a point; no hard selling;
+  end with a gentle CTA or question.
+negative_extra: salesy, promotional banner, discount badge

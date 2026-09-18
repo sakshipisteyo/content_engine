@@ -17,6 +17,7 @@ import {
   loadScoreConfig,
   loadBrand,
   loadAllBriefs,
+  loadTemplate,
   computeVersions,
   compileBase,
   estimateCredits,
@@ -27,6 +28,7 @@ import {
   type Brief,
   type Brand,
   type BrandMemory,
+  type Template,
   type StageName,
   type PipelineCtx,
 } from "../packages/engine/src/index";
@@ -148,6 +150,11 @@ async function dryRun(
   let total = 0;
   const warnings: string[] = [];
   const memCache = new Map<string, BrandMemory>();
+  const tmplCache = new Map<string, Template>();
+  const templateCache = (k: string): Template => {
+    if (!tmplCache.has(k)) tmplCache.set(k, loadTemplate(k));
+    return tmplCache.get(k)!;
+  };
   for (const brief of briefs) {
     let brand: Brand;
     try {
@@ -160,6 +167,7 @@ async function dryRun(
     }
     const memory = memCache.get(brief.brand)!;
     const versions = computeVersions(brief.brand);
+    const template = brief.template ? templateCache(brief.template) : undefined;
     const plan = compileBase({
       brief,
       brand,
@@ -168,6 +176,7 @@ async function dryRun(
       versions,
       brandKey: brief.brand,
       memory,
+      template,
     });
     const dir = join(PATHS.out, brief.id);
     mkdirSync(dir, { recursive: true });

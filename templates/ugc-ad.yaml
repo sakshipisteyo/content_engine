@@ -1,0 +1,20 @@
+key: ugc-ad
+name: UGC Ad (Reel)
+description: Creator-style short video authentically showing the product.
+format: video
+platform: instagram
+aspect: "9:16"
+mode: variants
+default_variants: 3
+default_credit_cap: 40
+uses_product_image: true
+image_directive: >
+  UGC / creator style: a real person naturally holding or using {{product_name}} in an
+  everyday setting, phone-shot authenticity, candid, natural window light, subtle grain.
+video_directive: >
+  Casual selfie energy: subtle handheld sway, the person shows the product to camera,
+  one continuous take, no cuts.
+copy_style: >
+  First-person and warm, like a real customer. Punchy one-line hook, one honest benefit,
+  a clear CTA. No corporate voice.
+negative_extra: overproduced, studio-sterile, stock-photo look, mannequin

@@ -22,6 +22,7 @@ export async function refineCopy(
   brief: Brief,
   prompt: PromptsFile,
   model: string,
+  copyStyle = "",
 ): Promise<Copy> {
   const productNames = brief.products
     .map((k) => brand.products[k]?.name ?? k)
@@ -37,6 +38,7 @@ export async function refineCopy(
     angle: brief.angle,
     cta: brief.cta,
     banned_words: brand.banned_words.join(", "),
+    template_copy_style: copyStyle,
   };
   const text = interpolate(prompt.template, tokens);
   const raw = (await json(text, COPY_SCHEMA, {

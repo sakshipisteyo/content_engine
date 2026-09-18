@@ -19,6 +19,7 @@ import {
   type Versions,
   type Aspect,
   type Learned,
+  type Template,
   PLATFORM_ASPECT,
   PromptPlanSchema,
 } from "./schemas";
@@ -41,6 +42,8 @@ export interface CompileInput {
   brandKey: string;
   /** Optional feedback-loop biases from past runs (SPEC "dotted arrow"). */
   memory?: BrandMemory;
+  /** Optional ad-type template whose directives flavour the prompts. */
+  template?: Template;
 }
 
 /** Camera moves cycled across video variants (kept short + generic). */
@@ -96,6 +99,8 @@ function referenceImages(input: CompileInput): string[] {
   const { brief, brand } = input;
   const anchor = brand.style_anchors[brief.style_anchor];
   const refs = new Set<string>();
+  // Uploaded product image is the primary reference (the hero subject).
+  if (brief.product_image) refs.add(join(PATHS.root, brief.product_image));
   for (const r of anchor?.references ?? []) refs.add(brandAssetPath(input.brandKey, r));
   for (const key of brief.products) {
     for (const img of brand.products[key]?.images ?? []) {
@@ -116,9 +121,20 @@ export function estimateCredits(brief: Brief, routes: Routes): number {
 
 /** Deterministic PromptPlan — no provider calls. */
 export function compileBase(input: CompileInput): PromptPlan {
-  const { brief, brand, prompts, routes } = input;
-  const aspect: Aspect = brief.format === "video" ? "9:16" : PLATFORM_ASPECT[brief.platform];
+  const { brief, brand, prompts, routes, template } = input;
+  const aspect: Aspect =
+    template?.aspect ?? (brief.format === "video" ? "9:16" : PLATFORM_ASPECT[brief.platform]);
   const tokens = baseTokens(input, aspect);
+
+  // Template directives (pre-interpolated with the base tokens) + product-image note.
+  tokens.template_image_directive = template ? interpolate(template.image_directive, tokens) : "";
+  tokens.template_video_directive = template ? interpolate(template.video_directive, tokens) : "";
+  tokens.template_copy_style = template ? interpolate(template.copy_style, tokens) : "";
+  tokens.template_negative = template ? template.negative_extra : "";
+  tokens.product_image_note = brief.product_image
+    ? "Feature the provided product image as the hero subject; keep it true to the real product."
+    : "";
+
   const refs = referenceImages(input);
 
   const shots: Shot[] = [];

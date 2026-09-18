@@ -15,6 +15,9 @@ export function Sidebar() {
           <div className="text-[11px] text-muted">Brand · spike</div>
         </div>
       </div>
+      <Link href="/brand/new" className="text-xs font-semibold text-clay hover:text-clay-dark px-2 -mt-3">
+        + Add your brand
+      </Link>
 
       <Link
         href="/create"

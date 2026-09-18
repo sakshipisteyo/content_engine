@@ -128,6 +128,8 @@ export const BrandSchema = z
     products: z.record(z.string(), ProductSchema),
     style_anchors: z.record(z.string(), StyleAnchorSchema),
     voice_id: z.string().min(1),
+    /** Optional monthly Higgsfield credit budget, for the board's budget bar. */
+    monthly_credit_budget: z.number().positive().optional(),
   })
   .strict();
 export type Brand = z.infer<typeof BrandSchema>;

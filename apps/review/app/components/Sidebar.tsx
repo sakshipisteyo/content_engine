@@ -1,6 +1,10 @@
 import Link from "next/link";
+import { listBrandCatalog } from "../../lib/catalog";
+import { BrandSwitcher } from "./BrandSwitcher";
 
 export function Sidebar() {
+  const brands = listBrandCatalog().map((b) => ({ key: b.key, name: b.name }));
+
   return (
     <nav className="w-[236px] shrink-0 box-border px-4 py-6 flex flex-col gap-6 border-r border-line bg-ground">
       <div className="flex items-center gap-2.5 px-2">
@@ -8,13 +12,7 @@ export function Sidebar() {
         <div className="font-display text-lg font-semibold">Content Engine</div>
       </div>
 
-      <div className="flex items-center gap-2.5 h-12 px-3 border border-line rounded-[10px] bg-panel">
-        <div className="w-[26px] h-[26px] rounded-md bg-clay" />
-        <div>
-          <div className="font-semibold text-[13px]">Banjaaran Studio</div>
-          <div className="text-[11px] text-muted">Brand · spike</div>
-        </div>
-      </div>
+      <BrandSwitcher brands={brands} current={null} />
       <Link href="/brand/new" className="text-xs font-semibold text-clay hover:text-clay-dark px-2 -mt-3">
         + Add your brand
       </Link>
@@ -38,6 +36,15 @@ export function Sidebar() {
             <path d="M3 11 12 3l9 8v10H3z" />
           </svg>
           Review board
+        </Link>
+        <Link
+          href="/batch"
+          className="flex items-center gap-2.5 h-11 px-3 rounded-lg text-ink no-underline hover:bg-active"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <path d="M4 6h16M4 12h16M4 18h10" />
+          </svg>
+          Fill my week
         </Link>
         <Link
           href="/report"

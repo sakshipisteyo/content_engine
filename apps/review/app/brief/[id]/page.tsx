@@ -26,6 +26,8 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
     : null;
   const format = d.plan?.format ?? d.brief?.format ?? "image";
   const hook = d.brief?.hook ?? d.plan?.copy.caption ?? id;
+  const isSlides = d.plan?.post_kind === "slides";
+  const hasMedia = d.survivors.some((v) => v.media !== null);
 
   return (
     <div className="flex flex-col h-screen">
@@ -48,6 +50,7 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
           </div>
         </div>
         <div className="flex items-center gap-2">
+          {isSlides && <Pill solid>Carousel</Pill>}
           <Pill>{format === "video" ? "Reel · 9:16" : `Image · ${top?.aspect ?? "4:5"}`}</Pill>
           <Pill>{PLATFORM_LABEL[d.plan?.platform ?? "instagram"] ?? d.plan?.platform}</Pill>
           <StatusPill status={d.status} />
@@ -56,55 +59,107 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
 
       <div className="flex-1 flex min-h-0">
         <section aria-label="Variants" className="flex-1 box-border px-8 py-7 flex gap-6 items-start overflow-auto">
-          <div className="flex flex-col gap-2.5">
-            <div className="relative">
-              <Preview
-                media={top?.media ?? null}
-                format={format}
-                aspect={top?.aspect ?? "9:16"}
-                className="w-[360px] h-[640px] rounded-[22px] border-[3px] border-ink"
-              />
-              {top && (
-                <div className="absolute top-4 left-4 px-2.5 py-1 rounded-md bg-ink text-white text-xs font-semibold">
-                  Variant {top.variant} · ranked 1st
+          {!hasMedia && d.survivors.length === 0 ? (
+            <div className="flex flex-col items-center justify-center flex-1 gap-4 py-16">
+              <div className="w-20 h-20 rounded-2xl bg-active flex items-center justify-center">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-muted" aria-hidden>
+                  <rect x="3" y="3" width="18" height="18" rx="3" />
+                  <circle cx="8.5" cy="8.5" r="1.5" />
+                  <path d="m21 15-5-5L5 21" />
+                </svg>
+              </div>
+              <div className="text-center max-w-xs">
+                <div className="font-display text-lg font-medium">Not generated yet</div>
+                <div className="text-sm text-muted mt-1">
+                  Add your API keys to <code className="text-xs">.env</code> and click Generate, or re-run from the hero stage.
                 </div>
-              )}
+              </div>
             </div>
-            {top?.cameraNote && <div className="text-xs text-muted w-[360px]">Camera: {top.cameraNote}</div>}
-            {top?.media && (
-              <a
-                href={top.media}
-                download
-                className="text-[13px] font-semibold text-clay hover:text-clay-dark w-fit"
-              >
-                ↓ Download this asset
-              </a>
-            )}
-          </div>
+          ) : isSlides ? (
+            <div className="flex flex-col gap-4">
+              <div className="text-xs text-muted font-semibold tracking-wide">
+                CAROUSEL · {d.survivors.length} SLIDE{d.survivors.length === 1 ? "" : "S"}
+              </div>
+              <div className="flex gap-3 overflow-x-auto pb-2">
+                {d.survivors.map((v, i) => (
+                  <div key={v.variant} className="flex flex-col gap-2 shrink-0">
+                    <div className="relative">
+                      <Preview
+                        media={v.media}
+                        format={format}
+                        aspect={v.aspect}
+                        className="w-[280px] h-[280px] rounded-[18px] border border-line2"
+                      />
+                      <span className="absolute top-3 left-3 px-2 py-0.5 rounded-md bg-ink text-white text-xs font-semibold">
+                        {i + 1}
+                      </span>
+                    </div>
+                    {v.media && (
+                      <a
+                        href={v.media}
+                        download
+                        className="text-[12px] font-semibold text-clay hover:text-clay-dark w-fit"
+                      >
+                        ↓ Download
+                      </a>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : (
+            <>
+              <div className="flex flex-col gap-2.5">
+                <div className="relative">
+                  <Preview
+                    media={top?.media ?? null}
+                    format={format}
+                    aspect={top?.aspect ?? "9:16"}
+                    className="w-[360px] h-[640px] rounded-[22px] border-[3px] border-ink"
+                  />
+                  {top && (
+                    <div className="absolute top-4 left-4 px-2.5 py-1 rounded-md bg-ink text-white text-xs font-semibold">
+                      Variant {top.variant} · ranked 1st
+                    </div>
+                  )}
+                </div>
+                {top?.cameraNote && <div className="text-xs text-muted w-[360px]">Camera: {top.cameraNote}</div>}
+                {top?.media && (
+                  <a
+                    href={top.media}
+                    download
+                    className="text-[13px] font-semibold text-clay hover:text-clay-dark w-fit"
+                  >
+                    ↓ Download this asset
+                  </a>
+                )}
+              </div>
 
-          <div className="flex flex-col gap-3.5">
-            <div className="text-xs text-muted font-semibold tracking-wide">OTHER VARIANTS</div>
-            {others.length === 0 && <div className="text-xs text-muted w-[150px]">No other survivors.</div>}
-            {others.map((v) => (
-              <div key={v.variant} className="relative">
-                <Preview
-                  media={v.media}
-                  format={format}
-                  aspect={v.aspect}
-                  className="w-[150px] h-[266px] rounded-[14px] border border-line2"
-                />
-                <span className="absolute top-2.5 left-2.5 px-1.5 py-0.5 rounded bg-panel text-[11px] font-semibold text-ink">
-                  {v.variant} · {ordinal(v.rank)}
-                </span>
+              <div className="flex flex-col gap-3.5">
+                <div className="text-xs text-muted font-semibold tracking-wide">OTHER VARIANTS</div>
+                {others.length === 0 && <div className="text-xs text-muted w-[150px]">No other survivors.</div>}
+                {others.map((v) => (
+                  <div key={v.variant} className="relative">
+                    <Preview
+                      media={v.media}
+                      format={format}
+                      aspect={v.aspect}
+                      className="w-[150px] h-[266px] rounded-[14px] border border-line2"
+                    />
+                    <span className="absolute top-2.5 left-2.5 px-1.5 py-0.5 rounded bg-panel text-[11px] font-semibold text-ink">
+                      {v.variant} · {ordinal(v.rank)}
+                    </span>
+                  </div>
+                ))}
+                {d.hidden.length > 0 && (
+                  <div className="text-xs text-muted w-[150px] leading-relaxed">
+                    {d.hidden.length} hidden:{" "}
+                    {d.hidden.map((h) => `#${h.variant} (${h.reasons.join(", ")})`).join("; ")}
+                  </div>
+                )}
               </div>
-            ))}
-            {d.hidden.length > 0 && (
-              <div className="text-xs text-muted w-[150px] leading-relaxed">
-                {d.hidden.length} hidden:{" "}
-                {d.hidden.map((h) => `#${h.variant} (${h.reasons.join(", ")})`).join("; ")}
-              </div>
-            )}
-          </div>
+            </>
+          )}
         </section>
 
         <aside className="w-[460px] shrink-0 box-border border-l border-line bg-panel px-7 pt-7 pb-6 flex flex-col gap-5 overflow-auto">
@@ -169,7 +224,7 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
           </section>
 
           <div className="flex-1" />
-          <DecisionBar briefId={id} topVariant={d.topVariant} />
+          <DecisionBar briefId={id} topVariant={d.topVariant} status={d.status} />
         </aside>
       </div>
     </div>

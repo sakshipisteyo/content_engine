@@ -1,4 +1,5 @@
-import { listBriefs } from "../lib/data";
+import { listBriefs, getBudget } from "../lib/data";
+import { listBrandCatalog } from "../lib/catalog";
 import { StatusPill, Pill, Preview } from "./components/ui";
 import { CardActions } from "./components/CardActions";
 import Link from "next/link";
@@ -11,15 +12,22 @@ const PLATFORM_LABEL: Record<string, string> = {
   youtube: "YouTube",
 };
 
-export default function Home() {
-  const briefs = listBriefs();
+export default async function Home({ searchParams }: { searchParams: Promise<{ brand?: string }> }) {
+  const { brand: brandFilter } = await searchParams;
+  const briefs = listBriefs(brandFilter);
   const ready = briefs.filter((b) => b.status === "pending").length;
+
+  const brands = listBrandCatalog();
+  const activeBrand = brandFilter ? brands.find((b) => b.key === brandFilter) : null;
+  const budget = brandFilter ? getBudget(brandFilter) : null;
 
   return (
     <div className="box-border px-10 py-8 flex flex-col gap-7">
       <header className="flex items-end justify-between">
         <div className="flex flex-col gap-1">
-          <div className="text-[13px] text-muted">Content Engine · review board</div>
+          <div className="text-[13px] text-muted">
+            Content Engine · review board{activeBrand ? ` · ${activeBrand.name}` : ""}
+          </div>
           <h1 className="m-0 font-display text-[34px] font-medium tracking-tight">
             {briefs.length === 0
               ? "No briefs yet"
@@ -42,9 +50,29 @@ export default function Home() {
         </div>
       </header>
 
+      {budget && budget.budgetCredits !== null && (
+        <div className="flex items-center gap-4 p-4 bg-panel border border-line rounded-xl">
+          <div className="text-sm font-semibold">Monthly budget</div>
+          <div className="flex-1 h-3 rounded-full bg-active overflow-hidden">
+            <div
+              className="h-3 rounded-full transition-all"
+              style={{
+                width: `${Math.min(100, (budget.usedCredits / budget.budgetCredits) * 100)}%`,
+                backgroundColor: budget.usedCredits / budget.budgetCredits > 0.9 ? "#B5471F" : "#2F5D50",
+              }}
+            />
+          </div>
+          <div className="text-sm text-muted whitespace-nowrap">
+            {budget.usedCredits} / {budget.budgetCredits} credits
+          </div>
+        </div>
+      )}
+
       {briefs.length === 0 ? (
         <div className="p-8 bg-panel border border-line rounded-xl text-muted">
-          Nothing in <code>out/</code> yet. Run a dry run or seed mock data, then refresh.
+          {brandFilter
+            ? `No briefs for this brand yet. `
+            : `Nothing in out/ yet. Run a dry run or seed mock data, then refresh.`}
         </div>
       ) : (
         <section className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -70,8 +98,13 @@ export default function Home() {
               </Link>
               <div className="px-4 pt-3.5 pb-4 flex flex-col gap-2.5 flex-1">
                 <div className="font-semibold text-sm leading-snug">{b.hook}</div>
-                <div className="text-xs text-muted flex-1">
-                  {b.variantsReady} variant{b.variantsReady === 1 ? "" : "s"} ready
+                <div className="text-xs text-muted flex-1 flex items-center gap-2">
+                  <span>{b.variantsReady} variant{b.variantsReady === 1 ? "" : "s"} ready</span>
+                  {b.estimatedCredits > 0 && (
+                    <span className="px-1.5 py-0.5 bg-active rounded text-[11px]">
+                      ~{b.estimatedCredits} cr
+                    </span>
+                  )}
                 </div>
                 <CardActions briefId={b.id} variant={b.topVariant} />
               </div>

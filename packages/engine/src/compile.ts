@@ -179,6 +179,7 @@ export function compileBase(input: CompileInput): PromptPlan {
     },
     estimated_credits: estimateCredits(brief, routes),
     versions: input.versions,
+    post_kind: template?.mode ?? "variants",
     ...(learned ? { learned } : {}),
   };
 

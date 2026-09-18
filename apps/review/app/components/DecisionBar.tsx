@@ -16,9 +16,11 @@ const STAGES = [
 export function DecisionBar({
   briefId,
   topVariant,
+  status,
 }: {
   briefId: string;
   topVariant: number | null;
+  status?: string;
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -139,6 +141,29 @@ export function DecisionBar({
           {topVariant ? `Approve variant ${topVariant}` : "No variant to approve"}
         </button>
       </div>
+      {status === "approved" && (
+        <button
+          onClick={async () => {
+            setMsg(null);
+            const res = await fetch("/api/repeat", {
+              method: "POST",
+              headers: { "content-type": "application/json" },
+              body: JSON.stringify({ brief_id: briefId }),
+            });
+            const body = (await res.json().catch(() => ({}))) as { id?: string; error?: string };
+            if (body.id) {
+              setMsg(`Created ${body.id} — redirecting…`);
+              start(() => router.push(`/brief/${body.id}`));
+            } else {
+              setMsg(body.error ?? "Could not repeat.");
+            }
+          }}
+          disabled={pending}
+          className="h-11 px-5 border border-forest rounded-[10px] bg-forest/10 text-forest font-semibold cursor-pointer hover:bg-forest/20 disabled:opacity-50"
+        >
+          Make more like this
+        </button>
+      )}
       {msg && <div className="text-xs text-muted text-center">{msg}</div>}
     </section>
   );

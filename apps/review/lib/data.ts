@@ -1,7 +1,8 @@
 import "server-only";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
-import { OUT_DIR } from "./repo";
+import { parse } from "yaml";
+import { OUT_DIR, ROOT } from "./repo";
 import { getStages, getDecisions } from "./ledger";
 import type {
   Brief,
@@ -82,15 +83,19 @@ export interface BriefSummary {
   topVariant: number | null;
   preview: string | null;
   aspect: string;
+  brand: string;
+  estimatedCredits: number;
 }
 
-export function listBriefs(): BriefSummary[] {
+export function listBriefs(brandFilter?: string): BriefSummary[] {
   const decisions = getDecisions();
   const stages = getStages();
   const out: BriefSummary[] = [];
   for (const id of listBriefIds()) {
     const plan = readJson<PromptPlan>(join(OUT_DIR, id, "prompt.json"));
     const brief = readJson<Brief>(join(OUT_DIR, id, "brief.json"));
+    const brand = brief?.brand ?? plan?.brand ?? "";
+    if (brandFilter && brand !== brandFilter) continue;
     const cards = loadCards(id).sort((a, b) => (a.rank ?? 99) - (b.rank ?? 99));
     const survivors = cards.filter((c) => c.hard_fails.length === 0);
     const top = survivors[0] ?? null;
@@ -105,6 +110,8 @@ export function listBriefs(): BriefSummary[] {
       topVariant: top?.variant ?? null,
       preview: top ? mediaUrl(id, top.variant, format) : null,
       aspect: plan?.shots.find((s) => s.variant === top?.variant)?.aspect ?? "4:5",
+      brand,
+      estimatedCredits: plan?.estimated_credits ?? 0,
     });
   }
   return out;
@@ -168,4 +175,32 @@ export function getBriefDetail(id: string): BriefDetail | null {
     topVariant: survivors[0]?.variant ?? null,
     decision,
   };
+}
+
+export interface BudgetInfo {
+  budgetCredits: number | null;
+  usedCredits: number;
+}
+
+export function getBudget(brandKey: string): BudgetInfo {
+  let budgetCredits: number | null = null;
+  try {
+    const f = join(ROOT, "brand", `${brandKey}.yaml`);
+    if (existsSync(f)) {
+      const y = parse(readFileSync(f, "utf8")) as { monthly_credit_budget?: number };
+      if (y.monthly_credit_budget) budgetCredits = y.monthly_credit_budget;
+    }
+  } catch { /* ignore */ }
+
+  const stages = getStages();
+  let used = 0;
+  const briefBrands = new Map<string, string>();
+  for (const id of listBriefIds()) {
+    const brief = readJson<Brief>(join(OUT_DIR, id, "brief.json"));
+    if (brief?.brand) briefBrands.set(id, brief.brand);
+  }
+  for (const s of stages) {
+    if (briefBrands.get(s.brief_id) === brandKey) used += s.credits || 0;
+  }
+  return { budgetCredits, usedCredits: used };
 }

@@ -28,6 +28,8 @@ export interface Learned {
   voice_examples: number;
 }
 
+export type PostKind = "variants" | "slides";
+
 export interface PromptPlan {
   brief_id: string;
   brand: string;
@@ -37,6 +39,7 @@ export interface PromptPlan {
   copy: Copy;
   estimated_credits: number;
   learned?: Learned;
+  post_kind?: PostKind;
 }
 
 export interface Brief {

@@ -192,6 +192,9 @@ export const LearnedSchema = z
   .strict();
 export type Learned = z.infer<typeof LearnedSchema>;
 
+export const PostKind = z.enum(["variants", "slides"]);
+export type PostKind = z.infer<typeof PostKind>;
+
 export const PromptPlanSchema = z
   .object({
     brief_id: z.string(),
@@ -204,6 +207,7 @@ export const PromptPlanSchema = z
     estimated_credits: z.number().nonnegative(),
     versions: VersionsSchema,
     learned: LearnedSchema.optional(),
+    post_kind: PostKind.default("variants"),
   })
   .strict();
 export type PromptPlan = z.infer<typeof PromptPlanSchema>;

@@ -148,6 +148,20 @@ export const VersionsSchema = z
   .strict();
 export type Versions = z.infer<typeof VersionsSchema>;
 
+/** What the feedback loop ("dotted arrow") changed on this compile, from past runs. */
+export const LearnedSchema = z
+  .object({
+    applied: z.boolean(),
+    sample_size: z.number().int().nonnegative(),
+    reinforced_negatives: z.array(z.string()).default([]),
+    anchor_note: z.string().nullable(),
+    preferred_anchors: z.array(z.string()).default([]),
+    downweighted_anchors: z.array(z.string()).default([]),
+    voice_examples: z.number().int().nonnegative().default(0),
+  })
+  .strict();
+export type Learned = z.infer<typeof LearnedSchema>;
+
 export const PromptPlanSchema = z
   .object({
     brief_id: z.string(),
@@ -159,6 +173,7 @@ export const PromptPlanSchema = z
     routing: RoutingResolvedSchema,
     estimated_credits: z.number().nonnegative(),
     versions: VersionsSchema,
+    learned: LearnedSchema.optional(),
   })
   .strict();
 export type PromptPlan = z.infer<typeof PromptPlanSchema>;

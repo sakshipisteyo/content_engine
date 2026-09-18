@@ -114,6 +114,32 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
             )}
           </section>
 
+          {d.plan?.learned?.applied && (
+            <section className="flex flex-col gap-2 rounded-xl border border-line bg-active/50 p-4">
+              <div className="flex items-center justify-between">
+                <h2 className="m-0 font-display text-lg font-medium">What the engine learned</h2>
+                <span className="text-xs text-muted">
+                  from {d.plan.learned.sample_size} past post{d.plan.learned.sample_size === 1 ? "" : "s"}
+                </span>
+              </div>
+              <ul className="text-[13px] text-ink flex flex-col gap-1 list-disc pl-4">
+                {d.plan.learned.reinforced_negatives.length > 0 && (
+                  <li>
+                    Reinforced {d.plan.learned.reinforced_negatives.length} guardrail
+                    {d.plan.learned.reinforced_negatives.length === 1 ? "" : "s"} from recurring off-brand results
+                  </li>
+                )}
+                {d.plan.learned.anchor_note && <li>{d.plan.learned.anchor_note}</li>}
+                {d.plan.learned.preferred_anchors.length > 0 && (
+                  <li>Leaning into proven style: {d.plan.learned.preferred_anchors.join(", ")}</li>
+                )}
+                {d.plan.learned.voice_examples > 0 && (
+                  <li>Carrying {d.plan.learned.voice_examples} approved caption(s) forward as brand voice</li>
+                )}
+              </ul>
+            </section>
+          )}
+
           <section className="flex flex-col gap-2">
             <h2 className="m-0 font-display text-lg font-medium">Caption</h2>
             <CaptionBox

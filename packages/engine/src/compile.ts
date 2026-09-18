@@ -18,11 +18,13 @@ import {
   type Shot,
   type Versions,
   type Aspect,
+  type Learned,
   PLATFORM_ASPECT,
   PromptPlanSchema,
 } from "./schemas";
 import { PATHS, ConfigError } from "./config";
 import { interpolate } from "./text";
+import type { BrandMemory } from "./memory";
 
 export interface CompilePrompts {
   image: PromptsFile;
@@ -37,6 +39,8 @@ export interface CompileInput {
   routes: Routes;
   versions: Versions;
   brandKey: string;
+  /** Optional feedback-loop biases from past runs (SPEC "dotted arrow"). */
+  memory?: BrandMemory;
 }
 
 /** Camera moves cycled across video variants (kept short + generic). */
@@ -135,6 +139,9 @@ export function compileBase(input: CompileInput): PromptPlan {
     shots.push(shot);
   }
 
+  // Feedback loop: bias this compile from past runs (SPEC "dotted arrow").
+  const learned = applyMemory(shots, brief, brand, input.memory);
+
   const caption = `${brief.hook} ${brief.cta}`.trim();
   const hashtags = deriveHashtags(brand, brief);
   const script =
@@ -156,10 +163,56 @@ export function compileBase(input: CompileInput): PromptPlan {
     },
     estimated_credits: estimateCredits(brief, routes),
     versions: input.versions,
+    ...(learned ? { learned } : {}),
   };
 
   // Validate our own output shape (SPEC: compile output is a contract).
   return PromptPlanSchema.parse(plan);
+}
+
+/** Apply brand memory to the shots in place; return the `learned` block (or undefined). */
+function applyMemory(
+  shots: Shot[],
+  brief: Brief,
+  brand: Brand,
+  mem: BrandMemory | undefined,
+): Learned | undefined {
+  if (!mem || mem.sampleSize === 0) return undefined;
+
+  if (mem.reinforcedNegatives.length) {
+    for (const shot of shots) {
+      shot.negative_prompt = dedupeJoin(shot.negative_prompt, mem.reinforcedNegatives);
+    }
+  }
+
+  let anchor_note: string | null = null;
+  if (mem.downweightedAnchors.includes(brief.style_anchor)) {
+    const preferred = mem.preferredAnchors.find((a) => a !== brief.style_anchor);
+    const desc = preferred ? brand.style_anchors[preferred]?.description : undefined;
+    if (preferred && desc) {
+      anchor_note = `Past posts with "${brief.style_anchor}" underperformed; steering toward "${preferred}".`;
+      for (const shot of shots) {
+        shot.image_prompt = `${shot.image_prompt} Learned brand preference: ${desc}.`;
+      }
+    }
+  }
+
+  return {
+    applied: true,
+    sample_size: mem.sampleSize,
+    reinforced_negatives: mem.reinforcedNegatives,
+    anchor_note,
+    preferred_anchors: mem.preferredAnchors,
+    downweighted_anchors: mem.downweightedAnchors,
+    voice_examples: mem.approvedCaptions.length,
+  };
+}
+
+/** Append terms to a comma-list negative prompt, skipping ones already present. */
+function dedupeJoin(base: string, extra: string[]): string {
+  const have = new Set(base.split(",").map((s) => s.trim().toLowerCase()));
+  const add = extra.filter((t) => !have.has(t.trim().toLowerCase()));
+  return add.length ? `${base}, ${add.join(", ")}` : base;
 }
 
 /** Simple deterministic hashtag seed from brand + product tokens. */

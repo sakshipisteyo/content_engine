@@ -23,6 +23,7 @@ import {
 } from "./schemas";
 import { PATHS } from "./config";
 import { compileBase, type CompilePrompts, brandAssetPath } from "./compile";
+import { loadBrandMemory } from "./memory";
 import { openLedger, now, type Ledger } from "./ledger";
 import * as higgs from "./providers/higgsfield";
 import * as eleven from "./providers/elevenlabs";
@@ -122,6 +123,7 @@ function stageCompile(ctx: PipelineCtx, brief: Brief): PromptPlan {
     routes: ctx.routes,
     versions: ctx.versions,
     brandKey: ctx.brandKey,
+    memory: loadBrandMemory(ctx.brandKey, ctx.ledger),
   });
   mkdirSync(briefDir(brief.id), { recursive: true });
   writeFileSync(join(briefDir(brief.id), "prompt.json"), JSON.stringify(plan, null, 2));

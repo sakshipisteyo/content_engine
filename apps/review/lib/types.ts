@@ -18,6 +18,16 @@ export interface Copy {
   hashtags: string[];
 }
 
+export interface Learned {
+  applied: boolean;
+  sample_size: number;
+  reinforced_negatives: string[];
+  anchor_note: string | null;
+  preferred_anchors: string[];
+  downweighted_anchors: string[];
+  voice_examples: number;
+}
+
 export interface PromptPlan {
   brief_id: string;
   brand: string;
@@ -26,6 +36,7 @@ export interface PromptPlan {
   shots: Shot[];
   copy: Copy;
   estimated_credits: number;
+  learned?: Learned;
 }
 
 export interface Brief {

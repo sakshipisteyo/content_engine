@@ -4,6 +4,7 @@ export * from "./config";
 export * from "./text";
 export * from "./load";
 export * from "./compile";
+export * from "./memory";
 export * from "./score";
 export * from "./media";
 export * from "./refine";

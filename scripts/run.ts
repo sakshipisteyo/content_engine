@@ -21,10 +21,12 @@ import {
   compileBase,
   estimateCredits,
   missingReferenceImages,
+  loadBrandMemoryReadOnly,
   runBrief,
   openLedger,
   type Brief,
   type Brand,
+  type BrandMemory,
   type StageName,
   type PipelineCtx,
 } from "../packages/engine/src/index";
@@ -145,6 +147,7 @@ async function dryRun(
   console.log(`\nDRY RUN — compiling ${briefs.length} brief(s), no provider calls.\n`);
   let total = 0;
   const warnings: string[] = [];
+  const memCache = new Map<string, BrandMemory>();
   for (const brief of briefs) {
     let brand: Brand;
     try {
@@ -152,6 +155,10 @@ async function dryRun(
     } catch (e) {
       die(e instanceof ConfigError ? e.message : (e as Error).message);
     }
+    if (!memCache.has(brief.brand)) {
+      memCache.set(brief.brand, loadBrandMemoryReadOnly(brief.brand, () => openLedger()));
+    }
+    const memory = memCache.get(brief.brand)!;
     const versions = computeVersions(brief.brand);
     const plan = compileBase({
       brief,
@@ -160,6 +167,7 @@ async function dryRun(
       routes,
       versions,
       brandKey: brief.brand,
+      memory,
     });
     const dir = join(PATHS.out, brief.id);
     mkdirSync(dir, { recursive: true });
@@ -173,6 +181,15 @@ async function dryRun(
         `${brief.variants} var  ~${credits} credits  (cap ${brief.credit_cap})` +
         (credits > brief.credit_cap ? "  ⚠ over cap" : ""),
     );
+    if (plan.learned?.applied) {
+      const l = plan.learned;
+      const bits = [
+        `+${l.reinforced_negatives.length} learned negative(s)`,
+        l.anchor_note ? "anchor steer" : null,
+        l.voice_examples ? `${l.voice_examples} caption voice` : null,
+      ].filter(Boolean);
+      console.log(`             ↳ brand memory (${l.sample_size} past posts): ${bits.join(", ")}`);
+    }
     for (const m of missingReferenceImages(plan)) {
       warnings.push(`${brief.id}: missing reference image ${m}`);
     }

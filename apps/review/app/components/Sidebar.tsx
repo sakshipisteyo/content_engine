@@ -16,6 +16,16 @@ export function Sidebar() {
         </div>
       </div>
 
+      <Link
+        href="/create"
+        className="flex items-center justify-center gap-2 h-11 rounded-[10px] bg-ink text-white font-semibold no-underline hover:brightness-125"
+      >
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" aria-hidden>
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        New post
+      </Link>
+
       <div className="flex flex-col gap-0.5">
         <Link
           href="/"

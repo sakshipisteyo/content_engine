@@ -71,6 +71,15 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
               )}
             </div>
             {top?.cameraNote && <div className="text-xs text-muted w-[360px]">Camera: {top.cameraNote}</div>}
+            {top?.media && (
+              <a
+                href={top.media}
+                download
+                className="text-[13px] font-semibold text-clay hover:text-clay-dark w-fit"
+              >
+                ↓ Download this asset
+              </a>
+            )}
           </div>
 
           <div className="flex flex-col gap-3.5">

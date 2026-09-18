@@ -6,6 +6,7 @@
 # --- generated output & local data ---
 out/
 data/
+uploads/
 *.sqlite
 *.sqlite-*
 

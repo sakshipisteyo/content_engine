@@ -26,12 +26,20 @@ export default function Home() {
               : `${ready} post${ready === 1 ? "" : "s"} ready for you`}
           </h1>
         </div>
-        <Link
-          href="/report"
-          className="h-11 px-4 border border-line2 rounded-[10px] bg-panel font-medium text-ink no-underline flex items-center hover:bg-active"
-        >
-          View report
-        </Link>
+        <div className="flex gap-2">
+          <Link
+            href="/report"
+            className="h-11 px-4 border border-line2 rounded-[10px] bg-panel font-medium text-ink no-underline flex items-center hover:bg-active"
+          >
+            View report
+          </Link>
+          <Link
+            href="/create"
+            className="h-11 px-5 rounded-[10px] bg-ink text-white font-semibold no-underline flex items-center hover:brightness-125"
+          >
+            New post
+          </Link>
+        </div>
       </header>
 
       {briefs.length === 0 ? (

@@ -36,13 +36,13 @@ assembles the deliverable, and learns from what the business approves.
 
 ### Phase 1 — Real end-to-end engine, local (now, no keys)
 - [x] Engine core, review board, dry-run
-- [ ] Feedback loop / brand memory (in progress) — the "dotted arrow"
-- [ ] Ad-type/template system (`templates/*.yaml`) + compile generalization
-      (a job = template + brand + product + a few inputs)
-- [ ] Product-image upload → primary reference; brand asset ingestion
-- [ ] Self-serve **Create** screen in the review app (pick brand + template + upload + inputs)
-- [ ] Multi-brand support + brand picker
-- [ ] Download finished assets from the board
+- [x] Feedback loop / brand memory — the "dotted arrow" (visible on the board)
+- [x] Ad-type/template system (`templates/*.yaml`, 4 types) + compile generalization
+- [x] Product-image upload → used as the primary Higgsfield reference
+- [x] Self-serve **Create** screen (pick ad type + brand/product + upload + a few words)
+- [x] Download finished assets from the board
+- [~] Multi-brand: Create + engine already support multiple `brand/<key>.yaml`; a board-wide
+      brand filter/switcher is the remaining nicety (full multi-tenant needs auth → Phase 3).
 
 ### Phase 2 — Real generation (needs Higgsfield + Anthropic + ElevenLabs keys)
 - Wire hero → public-URL upload for DoP image-to-video

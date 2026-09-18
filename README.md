@@ -6,8 +6,33 @@ ready-to-post content, with a browser review board and a cost ledger. Full spec 
 
 ## Status
 
-Building against SPEC section 7 acceptance tests (A1 → A8). See DECISIONS.md for the
-current state and known blockers (ffmpeg, API keys, real brand/briefs).
+Built against SPEC section 7 (A1 → A8). A1 (typecheck + tests) and A2 (dry-run) pass.
+The engine (compile → hero → score → motion → copy → voice → assemble → score-2),
+`run.ts`/`report.ts`, and the Next.js review board are all in place. A3–A6, A8 need API
+keys + ffmpeg (see below). See [DECISIONS.md](DECISIONS.md) for deviations and blockers.
+
+## Test the review board on localhost now (no keys needed)
+
+```
+corepack pnpm@9.15.0 exec tsx scripts/seed-mock.ts   # fabricate mock out/ + ledger
+corepack pnpm@9.15.0 --filter review dev             # http://localhost:3000
+```
+
+The board reads `out/` and `data/ledger.sqlite`. Mock data uses placeholder images; it
+lets you click through the brief list, a brief's ranked variants + scorecards, editable
+caption, approve/reject/rate, and the /report page — all with zero provider calls.
+
+## Go live (real generation)
+
+1. `cp .env.example .env` and fill in the three provider keys (set a Higgsfield spend cap first).
+2. `winget install Gyan.FFmpeg`, then reopen the terminal (needed for video/assemble).
+3. Confirm the Higgsfield model ids + per-second credit costs in `routing/routes.yaml`.
+4. Delete the mock data for a clean slate: remove `out/` and `data/ledger.sqlite`.
+5. One real call per provider, then a brief:
+   ```
+   corepack pnpm@9.15.0 exec tsx scripts/run.ts --only banj-001 --format image
+   ```
+6. Refresh the review board — real content appears in the same screens.
 
 ## Prerequisites
 

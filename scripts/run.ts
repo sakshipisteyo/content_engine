@@ -164,6 +164,7 @@ async function dryRun(
     const dir = join(PATHS.out, brief.id);
     mkdirSync(dir, { recursive: true });
     writeFileSync(join(dir, "prompt.json"), JSON.stringify(plan, null, 2));
+    writeFileSync(join(dir, "brief.json"), JSON.stringify(brief, null, 2));
 
     const credits = estimateCredits(brief, routes);
     total += credits;

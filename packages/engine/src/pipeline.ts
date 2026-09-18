@@ -125,6 +125,7 @@ function stageCompile(ctx: PipelineCtx, brief: Brief): PromptPlan {
   });
   mkdirSync(briefDir(brief.id), { recursive: true });
   writeFileSync(join(briefDir(brief.id), "prompt.json"), JSON.stringify(plan, null, 2));
+  writeFileSync(join(briefDir(brief.id), "brief.json"), JSON.stringify(brief, null, 2));
   if (!ctx.ledger.stageDone(brief.id, null, "compile")) {
     record(ctx, {
       brief_id: brief.id,

@@ -123,6 +123,40 @@ decide and note the decision here." Newest first.
     (solid two-tone jpgs + a simple logo) so stages 2/7 have inputs. Replace with the
     real Banjaaran kit before real generation.
 
+## 2026-09-18 — Review board (A7) built against mock data
+
+21. **node:sqlite loaded via `process.getBuiltinModule("node:sqlite")`** in both the
+    engine ledger and the board. `createRequire` worked under tsx/vitest but Turbopack
+    (Next 16's bundler) tried to inline the builtin and failed. `getBuiltinModule`
+    (Node 22.3+/24) returns the builtin without an import/require the bundler analyses.
+
+22. **The review board is decoupled from the engine package.** It reads `out/*/prompt.json`,
+    `out/*/brief.json`, `out/*/v*/score.json` and the ledger directly (fs + node:sqlite),
+    with its own small copies of the JSON types and the ledger schema. This keeps the Next
+    dev server free of the engine's native deps (sharp/execa) and provider SDKs. Minor
+    duplication of the ledger table DDL is accepted; both sides use CREATE IF NOT EXISTS.
+
+23. **compile/dry-run also writes `out/<id>/brief.json`** so the detail page can show the
+    hook/angle/CTA/style-anchor without parsing YAML in the board.
+
+24. **Board scope follows SPEC section 6, not the fuller mockups.** Three screens only:
+    `/` (brief cards), `/brief/[id]` (detail), `/report`. The mockups' calendar, brand
+    memory, performance, scheduling and "render 4K" are out of scope (SPEC section 1) and
+    omitted. No prompt text / model names / credit numbers on `/` or `/brief/[id]` per the
+    section-6 rule; those live on `/report`. Media is served from `out/` via
+    `/api/media/[...path]` (never copied).
+
+25. **Re-run wiring** (`/api/rerun`) spawns `node --import tsx scripts/run.ts --only <id>
+    --from <stage> --note "…"` detached, but only if `.env` has keys; otherwise it records
+    the edit decision and reports "needs keys". Verified the board renders all three
+    screens on localhost:3000 and that Approve writes a decisions row that re-renders as
+    "Approved".
+
+26. **`scripts/seed-mock.ts`** fabricates a full `out/` + ledger dataset (placeholder
+    heroes, synthetic score cards with one hidden hard-fail per 3-variant brief, ledger
+    rows, two human ratings) so the board is testable with zero provider calls. Real runs
+    overwrite it; delete `out/` and `data/` for a clean slate before real generation.
+
 ## Known blockers to real generation (do not block steps 1–4 / A1–A2)
 
 - **ffmpeg not on PATH** — blocks stage 7 (assemble) and A4/A7. Install before A4:

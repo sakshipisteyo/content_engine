@@ -17,11 +17,12 @@ const _origEmitWarning = process.emitWarning.bind(process);
   return _origEmitWarning(warning, ...rest);
 }) as typeof process.emitWarning;
 
-// Load via createRequire so bundlers (Vite/vitest) don't try to pre-resolve the
-// newer `node:sqlite` builtin; the type-only import is erased at compile time.
-import { createRequire } from "node:module";
+// Load via process.getBuiltinModule so bundlers (Vite/vitest, Turbopack) don't try to
+// pre-resolve the newer `node:sqlite` builtin; the type-only import is erased.
 import type { DatabaseSync as DatabaseSyncType } from "node:sqlite";
-const { DatabaseSync } = createRequire(import.meta.url)("node:sqlite") as typeof import("node:sqlite");
+const { DatabaseSync } = (
+  process as unknown as { getBuiltinModule(id: string): typeof import("node:sqlite") }
+).getBuiltinModule("node:sqlite");
 import { PATHS } from "./config";
 import type { LedgerStage, Decision, StageName } from "./schemas";
 

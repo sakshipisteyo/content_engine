@@ -1,0 +1,36 @@
+# Model routing + credit cost table. SPEC section 2: "Every model id lives in
+# routing/routes.yaml. No model id in code." SPEC section 9: credit costs per model
+# are confirmed against the Higgsfield account and recorded here.
+#
+# The endpoints below are the installed SDK's documented v2 endpoints
+# (@higgsfield/client/v2). SPEC section 5 names Seedream v4 (image) and Kling /
+# Seedance (video); those are NOT typed endpoints in the SDK. subscribe() accepts
+# arbitrary endpoint strings, so they MAY be callable on the account — CONFIRM, then
+# swap the `endpoint` values below. Per SPEC section 8, a rejected model id is
+# reported and the run stops; it is never silently substituted.
+#
+# Credit numbers are PLACEHOLDERS until confirmed on the Higgsfield dashboard.
+
+image:
+  endpoint: /v1/text2image/soul     # Higgsfield "Soul". Alt to confirm: Seedream v4
+  quality: 1080p                    # 720p | 1080p (no 4K in the spike)
+  batch_size: 1                     # 1 | 4
+  credits_per_image: 4              # PLACEHOLDER — confirm
+
+video:
+  endpoint: /v1/image2video/dop     # Higgsfield "DoP". Alt to confirm: Kling / Seedance
+  model: dop-turbo                  # dop-lite | dop-turbo | dop-standard
+  quality: 720p                     # 720p in the spike
+  duration_seconds: 5               # 5 | 10
+  credits_per_second: 2             # PLACEHOLDER — confirm (=> 10 credits per 5s clip)
+
+copy:
+  model: claude-sonnet-5            # Anthropic; confirm exact id at first real call
+
+score:
+  model: claude-sonnet-5            # Anthropic vision; confirm exact id at first real call
+
+voice:
+  model: eleven_multilingual_v2     # ElevenLabs model id
+  output_format: mp3_44100_128
+  credits_per_run: 0                # VO billed by ElevenLabs char quota, not credits

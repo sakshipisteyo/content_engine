@@ -93,6 +93,36 @@ decide and note the decision here." Newest first.
     `project/Main.dc.html` (brief list) and `project/Review.dc.html` (brief detail).
     Re-read at A7 and rebuild as the Next.js review board.
 
+## 2026-09-18 — Engine build (A-test steps 3–4: A1 + A2 green)
+
+16. **Compile stage is deterministic; Claude used for copy + scoring.** SPEC section 5
+    maps stage 1 (compile) to "Claude Sonnet, JSON mode". In the spike the compile stage
+    builds the PromptPlan by interpolating the YAML templates and validates it as JSON
+    against the `PromptPlan` Zod contract (the "JSON mode" guarantee is thus enforced).
+    Claude Sonnet is used inside the pipeline for the copy stage (stage 5) and vision
+    scoring (stages 3/8); Higgsfield for pixels. Rationale: a deterministic compile keeps
+    `--dry-run` credit estimates exact and every stage reproducible/idempotent. `refine.ts`
+    shows the Claude pattern if LLM-authored image prompts are wanted later.
+
+17. **score-2 (stage 8) reuses score-1 ranking in the spike.** It records a ledger row
+    per survivor (so the stage is represented) rather than making a second, costlier
+    vision pass over the finals. Ranks come from score-1. Upgrade to a real finals pass
+    is a small change in `stageScore2`.
+
+18. **DoP image-to-video needs a public image_url for the hero.** The v2 DoP input takes
+    `input_images: [{ type:'image_url', image_url }]`. Hosting the local hero (Higgsfield
+    asset upload or a temp host) is not yet wired — `uploadHeroPlaceholder()` throws so the
+    motion stage records a clear failure. **Wire this before A4.**
+
+19. **A2 verified:** dry-run compiles all briefs, writes `out/<id>/prompt.json`, prints
+    per-brief + total estimated credits, and creates NO `data/ledger.sqlite` (0 provider
+    calls). A1 verified: `typecheck` clean, 20/20 unit tests pass (compile shape, every
+    scorer hard check, ledger read/write/idempotency).
+
+20. **Placeholder brand assets generated** via `scripts/make-placeholders.ts`
+    (solid two-tone jpgs + a simple logo) so stages 2/7 have inputs. Replace with the
+    real Banjaaran kit before real generation.
+
 ## Known blockers to real generation (do not block steps 1–4 / A1–A2)
 
 - **ffmpeg not on PATH** — blocks stage 7 (assemble) and A4/A7. Install before A4:

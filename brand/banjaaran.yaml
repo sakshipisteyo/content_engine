@@ -1,0 +1,28 @@
+# PLACEHOLDER brand file, filled from SPEC section 4. Sakshi replaces the assets and
+# the voice_id with the real Banjaaran brand kit before real generation (section 9).
+# Asset paths are relative to brand/banjaaran/ (i.e. brand/banjaaran/assets/...).
+name: Banjaaran Studio
+category: handcrafted footwear
+audience: urban women 25-40, values craft over trend
+tone: [warm, confident, unhurried]
+banned_words: [cheap, sale, discount]
+banned_visuals: [studio white background, mannequins]
+palette: ['#B5471F', '#D9C3A3', '#2F5D50', '#1C1A17']
+logo: assets/logo.png
+products:
+  kolhapuri-tan:
+    name: Kolhapuri Tan
+    price_inr: 3200
+    images: [assets/kolh-1.jpg, assets/kolh-2.jpg]
+  antique-maroon:
+    name: Antique Maroon
+    price_inr: 3600
+    images: [assets/maroon-1.jpg]
+style_anchors:
+  warm-evening:
+    description: golden hour, street, shallow depth
+    references: [assets/win-1.jpg]
+  studio-craft:
+    description: close macro of stitching on textured leather, warm side light
+    references: [assets/win-2.jpg]
+voice_id: REPLACE_WITH_ELEVENLABS_VOICE_ID

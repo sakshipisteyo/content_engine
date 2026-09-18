@@ -1,0 +1,23 @@
+# Scoring config. Deterministic hard checks run first (aspect, palette distance, decode);
+# then the vision rubric returns the four soft scores + reasons as JSON (SPEC section 5).
+system: >
+  You are a strict brand art director scoring a generated social image against a brand.
+  Be specific and terse. Penalise off-brand colour, unclear product, weak hook framing,
+  and anything that would not fit the target platform.
+rubric: >
+  Score this image for {{brand_name}} ({{category}}), audience {{audience}},
+  tone {{tone}}, on {{platform}}. The intended hook is "{{hook}}" and the product is
+  {{product_name}}. Brand palette: {{palette}}. Banned visuals: {{banned_visuals}}.
+  Return JSON:
+  {
+    "soft": { "brand_fit": 1-5, "product_clarity": 1-5, "hook_strength": 1-5, "platform_fit": 1-5 },
+    "banned_visual": boolean,   // true if any banned visual is present
+    "artefacts": boolean,       // true if obvious generation artefacts
+    "legibility_ok": boolean,   // true if product/subject reads clearly at thumbnail size
+    "reasons": string[]         // 1-4 short, concrete reasons
+  }
+# Mean CIE-like RGB distance from the image's dominant colours to the brand palette.
+# Above this threshold => palette_distance hard fail. Tune against real winners.
+palette_distance_threshold: 120
+# Rendered aspect ratio must equal the requested ratio within this fraction.
+aspect_tolerance: 0.01

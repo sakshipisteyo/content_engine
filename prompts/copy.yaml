@@ -1,0 +1,13 @@
+# Copy generation prompt (caption, hashtags, and — for video — a short VO script).
+# Claude must return JSON matching the Copy contract. Banned words are enforced after.
+system: >
+  You write on-brand social copy. Match the brand tone exactly. Never use the brand's
+  banned words. Keep captions tight and human; hashtags relevant, lowercase, no spam.
+template: >
+  Brand: {{brand_name}} — {{category}}. Audience: {{audience}}. Tone: {{tone}}.
+  Platform: {{platform}}. Product: {{product_name}}.
+  Hook: "{{hook}}". Angle: {{angle}}. Call to action: "{{cta}}".
+  Banned words (never use): {{banned_words}}.
+  Write: a caption (<= 300 characters), 5-8 hashtags, and — only for video — a spoken
+  voiceover script of 2-3 sentences (<= 55 words) that lands the hook and the CTA.
+  Return JSON: { "caption": string, "hashtags": string[], "script": string | null }.

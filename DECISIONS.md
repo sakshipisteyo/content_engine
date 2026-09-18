@@ -38,6 +38,61 @@ decide and note the decision here." Newest first.
 8. **zod v4** (latest) — API used (`z.object`, `.parse`, `.safeParse`) is unchanged
    from v3.
 
+## 2026-09-18 — SDK types read (A-test step 2)
+
+9. **SQLite via `node:sqlite`, not better-sqlite3.** `better-sqlite3` builds from
+   source (node-gyp), which needs Python 3 + MSVC build tools; node-gyp could not run
+   any Python on this machine and the install failed. Node 24's built-in **`node:sqlite`
+   (`DatabaseSync`)** works flagless here and has a near-identical synchronous API
+   (`.prepare/.run/.get/.all/.exec`). Using it, isolated inside `ledger.ts` behind a
+   tiny interface so swapping back to better-sqlite3 (once a toolchain exists) is a
+   one-file change. `sharp` installed fine (prebuilt binary, no compile).
+
+10. **Higgsfield SDK surface (`@higgsfield/client/v2`).** Read from
+    `node_modules/@higgsfield/client/dist/v2/*.d.ts` + README:
+    - `import { higgsfield, config } from '@higgsfield/client/v2'`
+    - Auth: `config({ credentials: 'KEY_ID:KEY_SECRET' })` (or `{apiKey,apiSecret}`, or
+      env `HF_CREDENTIALS`). Provider joins `HIGGSFIELD_API_KEY:HIGGSFIELD_SECRET`.
+    - Call: `await higgsfield.subscribe(endpoint, { input, withPolling: true })`.
+    - Result: types say `V2Response { status, images?:[{url}], video?:{url} }`; README
+      says a `JobSet { isCompleted, jobs[].results.raw.url }`. Provider normalizes BOTH.
+    - `subscribe(endpoint, ...)` accepts ANY endpoint string; only three are typed:
+      `/v1/text2image/soul` (Soul t2i), `/v1/image2video/dop` (DoP i2v, sub-model
+      `dop-lite|dop-turbo|dop-standard`), `/v1/speak/higgsfield`.
+
+11. **Image/video model ids (routes.yaml).** SPEC section 5 names *Seedream v4* (image)
+    and *Kling / Seedance* (video). Those are not the installed SDK's typed endpoints.
+    Because `subscribe` takes arbitrary endpoint strings, they *may* be callable, but the
+    account determines that (section 9 asks Sakshi to confirm). **Default routes use the
+    SDK's own documented endpoints — Soul (`/v1/text2image/soul`) and DoP
+    (`/v1/image2video/dop`, `dop-turbo`)** as the known-good baseline, with the SPEC
+    names recorded as commented alternates to confirm. Per section 8, if a model id in
+    routes.yaml is rejected at real-call time I will report it and stop, not substitute.
+
+12. **Credits are estimated, not returned.** `V2Response` carries no credit/seconds
+    field. `estimated_credits` is computed from a cost table in `routing/routes.yaml`
+    (credits per image; credits per video-second × duration). Dry-run sums these; real
+    stages record the same estimate. Matches section 9's "put their credit cost per
+    second in routes.yaml".
+
+13. **Anthropic (`@anthropic-ai/sdk` 0.126).** `client.messages.create(...)`.
+    - `json(prompt, schema)`: forced structured output via a single tool whose
+      `input_schema` is the JSON Schema, `tool_choice: { type:'tool', name }`, then read
+      the `tool_use` block's `input` and validate with Zod. (Anthropic has no OpenAI-style
+      "JSON mode"; forced tool use is the robust equivalent.)
+    - `vision(images, rubric)`: `messages.create` with content blocks
+      `{ type:'image', source:{ type:'base64', media_type, data } }` + the rubric text.
+    - Model id from routes.yaml (`claude-sonnet-5`).
+
+14. **ElevenLabs (`@elevenlabs/elevenlabs-js` 2.68).**
+    `new ElevenLabsClient({ apiKey })`; `client.textToSpeech.convert(voiceId, { text,
+    modelId, outputFormat })` → `ReadableStream<Uint8Array>` (drain to a .wav/.mp3 file).
+
+15. **Review-board design source (A7).** Dashboard mockups live in the "Design (canvas)"
+    artifact <https://claude.ai/artifact/FQGfVevxiuJQdu5ZAP5xWR> — artboards
+    `project/Main.dc.html` (brief list) and `project/Review.dc.html` (brief detail).
+    Re-read at A7 and rebuild as the Next.js review board.
+
 ## Known blockers to real generation (do not block steps 1–4 / A1–A2)
 
 - **ffmpeg not on PATH** — blocks stage 7 (assemble) and A4/A7. Install before A4:

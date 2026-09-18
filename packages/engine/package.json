@@ -14,15 +14,11 @@
     "@anthropic-ai/sdk": "0.126.0",
     "@elevenlabs/elevenlabs-js": "2.68.0",
     "@higgsfield/client": "0.2.6",
-    "better-sqlite3": "13.0.3",
     "dotenv": "^16.4.5",
     "execa": "10.0.1",
     "p-limit": "7.3.2",
     "sharp": "0.35.4",
     "yaml": "2.9.1",
     "zod": "4.6.5"
-  },
-  "devDependencies": {
-    "@types/better-sqlite3": "^7.6.11"
   }
 }

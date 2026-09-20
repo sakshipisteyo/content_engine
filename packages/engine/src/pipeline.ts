@@ -143,15 +143,31 @@ function stageCompile(ctx: PipelineCtx, brief: Brief, template?: Template): Prom
   return plan;
 }
 
+const VALID_RESOLUTIONS = [
+  "1152x2048", "2048x1152", "2048x1536", "1536x2048",
+  "1344x2016", "2016x1344", "960x1696", "1536x1536",
+  "1536x1152", "1696x960", "1152x1536", "1088x1632",
+  "1632x1088", "1120x1680", "1680x1120", "2048x2048",
+] as const;
+
+function closestResolution(aspect: string): string {
+  const [w, h] = aspect.split(":").map(Number);
+  const target = (w ?? 1) / (h ?? 1);
+  let best = VALID_RESOLUTIONS[0]!;
+  let bestDiff = Infinity;
+  for (const res of VALID_RESOLUTIONS) {
+    const [rw, rh] = res.split("x").map(Number);
+    const diff = Math.abs((rw!) / (rh!) - target);
+    if (diff < bestDiff) { bestDiff = diff; best = res; }
+  }
+  return best;
+}
+
 /** Higgsfield text-to-image input for a shot, from routes.yaml. */
 function heroInput(ctx: PipelineCtx, shot: Shot): Record<string, unknown> {
-  const [w, h] = shot.aspect.split(":").map(Number);
-  const long = 1152;
-  const width = (w ?? 1) >= (h ?? 1) ? long : Math.round((long * (w ?? 1)) / (h ?? 1));
-  const height = (h ?? 1) > (w ?? 1) ? long : Math.round((long * (h ?? 1)) / (w ?? 1));
   return {
     prompt: shot.image_prompt,
-    width_and_height: `${width}x${height}`,
+    width_and_height: closestResolution(shot.aspect),
     quality: ctx.routes.image.quality,
     batch_size: ctx.routes.image.batch_size,
     enhance_prompt: true,

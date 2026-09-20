@@ -1,0 +1,13 @@
+id: test-001
+brand: banjaaran
+format: image
+platform: instagram
+hook: Test run — one hero image
+angle: Product Hero (Image)
+cta: Learn more
+products:
+  - kolhapuri-tan
+style_anchor: warm-evening
+variants: 1
+credit_cap: 5
+template: product-hero

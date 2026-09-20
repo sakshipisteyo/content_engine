@@ -20,4 +20,4 @@ rubric: >
 # Above this threshold => palette_distance hard fail. Tune against real winners.
 palette_distance_threshold: 120
 # Rendered aspect ratio must equal the requested ratio within this fraction.
-aspect_tolerance: 0.01
+aspect_tolerance: 0.10

@@ -38,6 +38,17 @@ The card shows the brand's own identity: optional `social: { display_name, handl
 and `font` in `brand/<key>.yaml` (defaults: brand name, handle from the name, the logo).
 It never draws a verified badge or engagement counts; quoting someone goes in the credit line.
 
+### More text templates (same renderer, 0 credits)
+
+| Template | What you write | Output |
+|---|---|---|
+| `insight-carousel` | cover title + outline: subtitle line, then `## Label \| Headline` pages with paragraph and `- bullet` lines | cover + pages + CTA page, PNG pages and a LinkedIn PDF (4:5 and 1:1) |
+| `tips-list` | title + one tip per line | one card, 4:5 / 1:1 / 9:16 |
+| `myth-vs-fact` | title + alternating `Myth: …` / `Fact: …` lines (any two labels, e.g. Before/After) | two-column card, 4:5 / 1:1 / 9:16 |
+
+The Create form shows the outline format as the placeholder. Leave the outline blank and,
+with `OPENROUTER_API_KEY` set, the copy model drafts it from the title. CLI: `--body "..."`.
+
 ## Go live (real generation)
 
 1. `cp .env.example .env` and fill in the three provider keys (set a Higgsfield spend cap first).

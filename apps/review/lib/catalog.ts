@@ -23,6 +23,9 @@ export interface TemplateCatalog {
   hookLabel: string | null;
   hookPlaceholder: string | null;
   asksAttribution: boolean;
+  asksBody: boolean;
+  bodyLabel: string | null;
+  bodyPlaceholder: string | null;
 }
 
 function yamlFiles(dir: string): string[] {
@@ -73,6 +76,9 @@ export function listTemplateCatalog(): TemplateCatalog[] {
         hook_label?: string;
         hook_placeholder?: string;
         asks_attribution?: boolean;
+        asks_body?: boolean;
+        body_label?: string;
+        body_placeholder?: string;
       };
       out.push({
         key: y.key ?? f.replace(/\.ya?ml$/, ""),
@@ -85,6 +91,9 @@ export function listTemplateCatalog(): TemplateCatalog[] {
         hookLabel: y.hook_label ?? null,
         hookPlaceholder: y.hook_placeholder ?? null,
         asksAttribution: y.asks_attribution === true,
+        asksBody: y.asks_body === true,
+        bodyLabel: y.body_label ?? null,
+        bodyPlaceholder: y.body_placeholder?.trim() ?? null,
       });
     } catch {
       /* skip malformed template */

@@ -17,6 +17,7 @@ export function CreateForm({
   const [cta, setCta] = useState("");
   const [angle, setAngle] = useState("");
   const [attribution, setAttribution] = useState("");
+  const [body, setBody] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
@@ -50,6 +51,7 @@ export function CreateForm({
     if (anchor) fd.set("anchor", anchor);
     if (file && !isText) fd.set("product_image", file);
     if (isText && attribution.trim()) fd.set("attribution", attribution.trim());
+    if (template?.asksBody && body.trim()) fd.set("body", body.trim());
     try {
       const res = await fetch("/api/create", { method: "POST", body: fd });
       const body = (await res.json()) as { id?: string; error?: string };
@@ -135,7 +137,15 @@ export function CreateForm({
         <label className="text-sm font-semibold">
           {isText ? "3" : "4"} · {template?.hookLabel ?? "A few words"}
         </label>
-        {isText ? (
+        {isText && template?.asksBody ? (
+          <input
+            value={hook}
+            onChange={(e) => setHook(e.target.value)}
+            placeholder={template.hookPlaceholder ?? "Title"}
+            maxLength={120}
+            className="h-11 px-3 border border-line2 rounded-[10px] text-sm bg-field"
+          />
+        ) : isText ? (
           <>
             <textarea
               value={hook}
@@ -156,6 +166,21 @@ export function CreateForm({
             placeholder={template?.hookPlaceholder ?? "Hook — what's the post about? e.g. Hand-stitched in Kolhapur, worn in Bandra."}
             className="h-11 px-3 border border-line2 rounded-[10px] text-sm bg-field"
           />
+        )}
+        {template?.asksBody && (
+          <>
+            <label className="text-xs text-muted mt-1">{template.bodyLabel ?? "Outline"}</label>
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder={template.bodyPlaceholder ?? ""}
+              rows={8}
+              className="px-3 py-2.5 border border-line2 rounded-[10px] text-sm bg-field resize-y font-mono"
+            />
+            <div className="text-[11px] text-muted -mt-1">
+              Leave blank to have it drafted from the title (needs an OpenRouter key). The example shows the format.
+            </div>
+          </>
         )}
         {template?.asksAttribution && (
           <input

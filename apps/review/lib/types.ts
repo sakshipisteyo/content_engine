@@ -57,6 +57,7 @@ export interface Brief {
   variants: number;
   credit_cap: number;
   attribution?: string;
+  body?: string;
 }
 
 export interface SoftScores {

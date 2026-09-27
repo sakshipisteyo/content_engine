@@ -1,0 +1,25 @@
+id: banj-insight-001
+brand: banjaaran
+format: image
+platform: linkedin
+hook: Why Handmade Footwear Lasts Longer
+angle: Insight Carousel (swipe post)
+cta: Follow Banjaaran
+products:
+  - kolhapuri-tan
+style_anchor: warm-evening
+variants: 3
+credit_cap: 0
+template: insight-carousel
+body: |-
+  What goes into a pair that outlives three seasons of trends
+  ## Craft | Every Stitch Is a Decision
+  A Kolhapuri is shaped and stitched by one artisan, start to finish.
+  - Vegetable-tanned leather softens to your foot
+  - Hand-stitching flexes instead of snapping
+  ## Care | Treat It Like Good Leather
+  A little attention adds years.
+  - Wipe with a dry cloth after wear
+  - Oil the leather every few months
+  ## Take action | Buy Fewer, Better Pairs
+  Choose one pair made to last over three made to be replaced.

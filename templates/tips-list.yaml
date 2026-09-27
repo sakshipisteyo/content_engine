@@ -1,0 +1,25 @@
+key: tips-list
+name: Tips List (text post)
+description: A title and 3-8 numbered tips on one card — how-tos, checklists, "ways to…".
+format: image
+platform: instagram
+aspect: "4:5"
+mode: variants
+renderer: typographic
+layout: tips-list
+hook_label: Title
+hook_placeholder: "e.g. 5 ways to make your coffee taste better at home"
+asks_body: true
+body_label: Tips (one per line)
+body_placeholder: |
+  Buy whole beans and grind just before brewing
+  Use filtered water just off the boil
+  Weigh it: about 1 g of coffee to 16 g of water
+draft_instructions: |
+  Write 5 tips for the title above, one per line, no numbering or bullets, each an
+  actionable sentence of at most 14 words.
+default_variants: 3 # one per theme: dark, light, brand colours
+default_credit_cap: 0
+uses_product_image: false
+copy_style: >
+  One line on why these tips matter, ask which one readers will try first, then the CTA.

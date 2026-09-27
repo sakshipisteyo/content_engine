@@ -66,6 +66,11 @@ export const BriefSchema = z
     product_image: z.string().optional(),
     /** Typographic posts: credit line under the statement (e.g. a quoted person's name). */
     attribution: z.string().optional(),
+    /**
+     * Typographic posts: the outline the layout is drawn from (sections, list items or
+     * label pairs — format per template, see templates/*.yaml `body_placeholder`).
+     */
+    body: z.string().optional(),
   })
   .strict();
 export type Brief = z.infer<typeof BriefSchema>;
@@ -82,7 +87,7 @@ export const Renderer = z.enum(["higgsfield", "typographic"]);
 export type Renderer = z.infer<typeof Renderer>;
 
 /** Typographic layouts the local renderer knows (packages/engine/src/typographic.ts). */
-export const TypographicLayout = z.enum(["quote-card"]);
+export const TypographicLayout = z.enum(["quote-card", "insight-carousel", "tips-list", "comparison"]);
 export type TypographicLayout = z.infer<typeof TypographicLayout>;
 
 export const TemplateSchema = z
@@ -102,6 +107,12 @@ export const TemplateSchema = z
     hook_placeholder: z.string().optional(),
     /** Create form offers an attribution (credit line) field. */
     asks_attribution: z.boolean().default(false),
+    /** Create form shows an outline textarea (typographic multi-part layouts). */
+    asks_body: z.boolean().default(false),
+    body_label: z.string().optional(),
+    body_placeholder: z.string().optional(),
+    /** How the copy model should write the outline when the user leaves it blank. */
+    draft_instructions: z.string().optional(),
     default_variants: z.number().int().min(1).max(10),
     default_credit_cap: z.number().nonnegative(),
     uses_product_image: z.boolean().default(true),

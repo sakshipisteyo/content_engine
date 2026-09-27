@@ -4,7 +4,7 @@
  *   tsx scripts/create.ts --brand banjaaran --template ugc-ad --hook "..." --cta "..." \
  *     [--products a,b] [--anchor warm-evening] [--angle "..."] [--platform instagram] \
  *     [--variants 3] [--credit-cap 40] [--product-image uploads/x.jpg] [--id <id>] \
- *     [--attribution "Name"]
+ *     [--attribution "Name"] [--body "outline text"]
  * Typographic templates (quote-card) render right away — local, 0 credits, no keys.
  * Prints: created <id>
  */
@@ -20,6 +20,10 @@ import {
   loadScoreConfig,
   computeVersions,
   runTypographic,
+  validateLayoutInput,
+  draftBody,
+  OutlineError,
+  BODY_LAYOUTS,
   jobFromTemplate,
   compileBase,
   loadBrandMemoryReadOnly,
@@ -70,9 +74,29 @@ const inputs: JobInputs = {
   credit_cap: arg("credit-cap") ? Number(arg("credit-cap")) : undefined,
   product_image: arg("product-image"),
   attribution: arg("attribution"),
+  body: arg("body"),
 };
 
 const brief = jobFromTemplate(template, inputs);
+
+// Outline-driven text posts: draft the outline if left blank (needs a key), then check it.
+if (template.layout && BODY_LAYOUTS.includes(template.layout)) {
+  if (!brief.body) {
+    if (!process.env.OPENROUTER_API_KEY) {
+      die("write the outline, or add OPENROUTER_API_KEY to .env to have it drafted");
+    }
+    try {
+      brief.body = await draftBody(brand, brief, template, loadRoutes().copy.model);
+    } catch (e) {
+      die(`could not draft the outline: ${(e as Error).message}`);
+    }
+  }
+  try {
+    validateLayoutInput(template.layout, brief);
+  } catch (e) {
+    die(e instanceof OutlineError ? `outline: ${e.message}` : (e as Error).message);
+  }
+}
 writeFileSync(join(PATHS.briefs, `${id}.yaml`), yamlStringify(brief));
 
 // Dry-compile so it appears on the board (no provider calls).

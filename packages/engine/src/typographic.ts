@@ -1,6 +1,7 @@
 /**
- * Typographic renderer: text-first post layouts (quote cards today) drawn locally with
- * sharp + Pango. No provider calls and no credits — the words come from the brief, the
+ * Typographic renderer: text-first post layouts drawn locally with
+ * sharp + Pango (quote card here; carousel/tips/comparison in slides.ts, dispatch in
+ * layouts.ts). No provider calls and no credits — the words come from the brief, the
  * colours and identity from the brand file. Each layout is rendered natively per aspect
  * (never cropped), and deterministic checks (contrast, text fit) produce the ScoreCard.
  *
@@ -10,7 +11,7 @@
  */
 import { existsSync } from "node:fs";
 import sharp, { type OverlayOptions } from "sharp";
-import type { Aspect, Brand, Brief, HardFail, ScoreCard, TypographicLayout } from "./schemas";
+import type { Aspect, Brand } from "./schemas";
 import { hexToRgb, type RGB } from "./score";
 
 /* ---------------------------------------------------------------- colours */
@@ -99,21 +100,32 @@ export function brandHandle(brand: Brand): string {
   return h.startsWith("@") ? h : `@${h}`;
 }
 
-interface TextImage {
+export interface TextImage {
   data: Buffer;
   width: number;
   height: number;
 }
 
+export interface TextOpts {
+  font: string;
+  size: number;
+  color: string;
+  width: number;
+  bold?: boolean;
+  /** Extra line spacing, px. */
+  spacing?: number;
+  /** Tracking, px (for small uppercase labels). */
+  letterSpacing?: number;
+}
+
 /** Render wrapped text (Pango) to a transparent PNG. Sizes are px (dpi 72). */
-async function textImage(
-  markup: string,
-  opts: { font: string; size: number; color: string; width: number; bold?: boolean; spacing?: number },
-): Promise<TextImage> {
+export async function textImage(markup: string, opts: TextOpts): Promise<TextImage> {
   const weight = opts.bold ? ' weight="bold"' : "";
+  // Pango letter_spacing is in 1/1024 pt; at dpi 72 a pt is a px.
+  const tracking = opts.letterSpacing ? ` letter_spacing="${Math.round(opts.letterSpacing * 1024)}"` : "";
   const { data, info } = await sharp({
     text: {
-      text: `<span foreground="${opts.color}"${weight}>${markup}</span>`,
+      text: `<span foreground="${opts.color}"${weight}${tracking}>${markup}</span>`,
       font: `${opts.font} ${opts.size}`,
       width: Math.round(opts.width),
       dpi: 72,
@@ -128,7 +140,7 @@ async function textImage(
 }
 
 /** Circle-cropped square avatar PNG; transparent logos sit on a `ground`-filled circle. */
-async function avatarImage(path: string, size: number, ground: string): Promise<Buffer> {
+export async function avatarImage(path: string, size: number, ground: string): Promise<Buffer> {
   const mask = Buffer.from(
     `<svg width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#fff"/></svg>`,
   );
@@ -283,7 +295,7 @@ function quoteImage(quote: string, font: string, size: number, color: string, wi
 }
 
 /** Fallback avatar: brand initial on an accent circle. */
-async function initialAvatar(name: string, size: number, theme: Theme): Promise<Buffer> {
+export async function initialAvatar(name: string, size: number, theme: Theme): Promise<Buffer> {
   const initial = escapeMarkup((name.trim()[0] ?? "?").toUpperCase());
   const fg = contrastRatio("#FFFFFF", theme.accent) >= contrastRatio("#111111", theme.accent) ? "#FFFFFF" : "#111111";
   const letter = await textImage(initial, { font: "sans-serif", size: Math.round(size * 0.45), color: fg, width: size, bold: true });
@@ -300,93 +312,3 @@ async function initialAvatar(name: string, size: number, theme: Theme): Promise<
     .toBuffer();
 }
 
-/* ------------------------------------------------------------------ score */
-
-/** WCAG AA: 4.5:1 for body text; 3:1 for large/secondary text. */
-export const MIN_TEXT_CONTRAST = 4.5;
-export const MIN_MUTED_CONTRAST = 3;
-
-/** Deterministic score card for a typographic variant (no LLM). */
-export function typographicScoreCard(
-  briefId: string,
-  variant: number,
-  theme: Theme,
-  renders: { aspect: Aspect; result: RenderResult }[],
-): ScoreCard {
-  const fails = new Set<HardFail>();
-  const reasons: string[] = [];
-  const textC = contrastRatio(theme.text, theme.background);
-  const mutedC = contrastRatio(theme.muted, theme.background);
-  reasons.push(`${theme.name} theme · text contrast ${textC.toFixed(1)}:1, secondary ${mutedC.toFixed(1)}:1`);
-  if (textC < MIN_TEXT_CONTRAST) {
-    fails.add("legibility");
-    reasons.push(`text contrast below ${MIN_TEXT_CONTRAST}:1`);
-  }
-  if (mutedC < MIN_MUTED_CONTRAST) {
-    fails.add("legibility");
-    reasons.push(`name/handle contrast below ${MIN_MUTED_CONTRAST}:1`);
-  }
-  for (const { aspect, result } of renders) {
-    if (!result.fits) {
-      fails.add("legibility");
-      reasons.push(`statement too long for ${aspect} — shorten it`);
-    }
-  }
-  const sizes = renders.map((r) => `${r.aspect} ${r.result.quoteSize}px`).join(", ");
-  reasons.push(`statement fits at ${sizes}`);
-  reasons.push("rendered locally — 0 credits");
-  return {
-    brief_id: briefId,
-    variant,
-    stage: "score-1",
-    hard_fails: [...fails],
-    soft: null,
-    total: 0,
-    rank: null,
-    reasons,
-  };
-}
-
-/* ------------------------------------------------------------------ entry */
-
-export interface TypographicVariant {
-  variant: number;
-  theme: Theme;
-  /** aspect -> PNG buffer */
-  renders: { aspect: Aspect; result: RenderResult }[];
-  card: ScoreCard;
-}
-
-/** Render every aspect of one variant for a layout. */
-export async function renderTypographicVariant(
-  layout: TypographicLayout,
-  brand: Brand,
-  brief: Brief,
-  variant: number,
-  aspects: Aspect[],
-  avatarPath: string | undefined,
-): Promise<TypographicVariant> {
-  const themes = quoteThemes(brand);
-  const theme = themes[(variant - 1) % themes.length]!;
-  const renders: { aspect: Aspect; result: RenderResult }[] = [];
-  for (const aspect of aspects) {
-    switch (layout) {
-      case "quote-card":
-        renders.push({
-          aspect,
-          result: await renderQuoteCard({
-            quote: brief.hook,
-            attribution: brief.attribution,
-            displayName: brand.social?.display_name ?? brand.name,
-            handle: brandHandle(brand),
-            avatarPath,
-            font: brand.font ?? "sans-serif",
-            theme,
-            aspect,
-          }),
-        });
-        break;
-    }
-  }
-  return { variant, theme, renders, card: typographicScoreCard(brief.id, variant, theme, renders) };
-}

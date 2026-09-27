@@ -225,9 +225,16 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
               {isText ? (
                 <>
                   <div className="col-span-2">
-                    <Field label="Statement" value={d.brief?.hook} />
+                    <Field label={d.brief?.body ? "Title" : "Statement"} value={d.brief?.hook} />
                   </div>
-                  <Field label="Credit line" value={d.brief?.attribution} />
+                  {d.brief?.body ? (
+                    <div className="col-span-2">
+                      <div className="text-muted text-xs">Outline</div>
+                      <pre className="m-0 whitespace-pre-wrap font-sans text-[12px] leading-relaxed">{d.brief.body}</pre>
+                    </div>
+                  ) : (
+                    <Field label="Credit line" value={d.brief?.attribution} />
+                  )}
                   <Field label="CTA" value={d.brief?.cta} />
                 </>
               ) : (
@@ -268,12 +275,14 @@ function TextPostVariants({
   return (
     <div className="flex flex-col gap-4">
       <div className="text-xs text-muted font-semibold tracking-wide">
-        TEXT POST · {survivors.length} THEME{survivors.length === 1 ? "" : "S"} · 0 CREDITS
+        TEXT POST · {survivors.length} THEME{survivors.length === 1 ? "" : "S"}
+        {survivors[0] && survivors[0].pages.length > 1 ? ` · ${survivors[0].pages.length} PAGES` : ""} · 0 CREDITS
       </div>
       <div className="flex gap-5 flex-wrap">
         {survivors.map((v) => (
           <div key={v.variant} className="flex flex-col gap-2 w-[300px]">
-            <div className="relative">
+            <span className="text-xs font-semibold capitalize text-ink">{v.theme ?? `Variant ${v.variant}`} theme</span>
+            <div>
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {v.media && (
                 <img
@@ -282,19 +291,31 @@ function TextPostVariants({
                   className="w-[300px] h-auto rounded-[14px] border border-line2"
                 />
               )}
-              <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-ink text-white text-xs font-semibold capitalize">
-                {v.theme ?? `Variant ${v.variant}`}
-              </span>
             </div>
-            <div className="flex gap-3 text-[12px] font-semibold">
-              {TEXT_SIZES.map((s) => (
+            {v.pages.length > 1 && (
+              <div className="flex gap-1.5 overflow-x-auto pb-1">
+                {v.pages.map((src, i) => (
+                  <a key={src} href={src} target="_blank" rel="noreferrer" className="shrink-0">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={src} alt={`page ${i + 1}`} className="w-[56px] h-[70px] object-cover rounded border border-line2" />
+                  </a>
+                ))}
+              </div>
+            )}
+            <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] font-semibold">
+              {v.pdfs.map((p) => (
+                <a key={p.url} href={p.url} download className="text-forest hover:brightness-110">
+                  ↓ {p.label}
+                </a>
+              ))}
+              {TEXT_SIZES.filter((s) => v.pages.length <= 1 || s.label !== "9:16").map((s) => (
                 <a
                   key={s.file}
                   href={`/api/media/${id}/v${v.variant}/${s.file}`}
                   download
                   className="text-clay hover:text-clay-dark"
                 >
-                  ↓ {s.label}
+                  ↓ {v.pages.length > 1 ? `cover ${s.label}` : s.label}
                 </a>
               ))}
             </div>

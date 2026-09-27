@@ -127,6 +127,7 @@ export interface VariantView {
   media: string | null;
   aspect: string;
   cameraNote?: string;
+  theme?: string;
 }
 
 export interface BriefDetail {
@@ -159,6 +160,7 @@ export async function getBriefDetail(id: string): Promise<BriefDetail | null> {
     media: mediaUrl(id, c.variant, format),
     aspect: plan?.shots.find((s) => s.variant === c.variant)?.aspect ?? "9:16",
     cameraNote: plan?.shots.find((s) => s.variant === c.variant)?.camera,
+    theme: plan?.shots.find((s) => s.variant === c.variant)?.theme,
   }));
 
   const hidden = cards

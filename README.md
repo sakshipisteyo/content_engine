@@ -22,6 +22,22 @@ The board reads `out/` and `data/ledger.sqlite`. Mock data uses placeholder imag
 lets you click through the brief list, a brief's ranked variants + scorecards, editable
 caption, approve/reject/rate, and the /report page — all with zero provider calls.
 
+## Text posts (quote cards) — real output, no keys
+
+The `quote-card` template is drawn locally (sharp), not by Higgsfield: 0 credits, no API
+keys. Pick **Quote Card** on `/create`, write the statement, optionally a credit line, and
+it renders dark, light and brand-colour versions at 4:5, 1:1 and 9:16 straight away.
+From the CLI:
+
+```
+corepack pnpm@9.15.0 exec tsx scripts/create.ts --brand banjaaran --template quote-card \
+  --hook "Good craft is slow on purpose." [--attribution "Name"] --cta "Follow for more"
+```
+
+The card shows the brand's own identity: optional `social: { display_name, handle, avatar }`
+and `font` in `brand/<key>.yaml` (defaults: brand name, handle from the name, the logo).
+It never draws a verified badge or engagement counts; quoting someone goes in the credit line.
+
 ## Go live (real generation)
 
 1. `cp .env.example .env` and fill in the three provider keys (set a Higgsfield spend cap first).

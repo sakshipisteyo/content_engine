@@ -183,7 +183,7 @@ async function dryRun(
     writeFileSync(join(dir, "prompt.json"), JSON.stringify(plan, null, 2));
     writeFileSync(join(dir, "brief.json"), JSON.stringify(brief, null, 2));
 
-    const credits = estimateCredits(brief, routes);
+    const credits = estimateCredits(brief, routes, template);
     total += credits;
     console.log(
       `  ${brief.id.padEnd(10)} ${brief.format.padEnd(5)} ${brief.platform.padEnd(9)} ` +

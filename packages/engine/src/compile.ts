@@ -26,6 +26,7 @@ import {
 import { PATHS, ConfigError } from "./config";
 import { interpolate } from "./text";
 import type { BrandMemory } from "./memory";
+import { quoteThemes } from "./typographic";
 
 export interface CompilePrompts {
   image: PromptsFile;
@@ -111,7 +112,8 @@ function referenceImages(input: CompileInput): string[] {
 }
 
 /** Estimated Higgsfield credits (SPEC: printed by dry-run; from routes.yaml). */
-export function estimateCredits(brief: Brief, routes: Routes): number {
+export function estimateCredits(brief: Brief, routes: Routes, template?: Template): number {
+  if (template?.renderer === "typographic") return 0; // drawn locally, no provider
   const heroes = brief.variants * routes.image.credits_per_image;
   if (brief.format === "image") return heroes;
   const clips = Math.min(2, brief.variants); // motion runs on the top 2 heroes
@@ -135,12 +137,26 @@ export function compileBase(input: CompileInput): PromptPlan {
     ? "Feature the provided product image as the hero subject; keep it true to the real product."
     : "";
 
-  const refs = referenceImages(input);
+  const typographic = template?.renderer === "typographic";
+  const refs = typographic ? [] : referenceImages(input);
+  const themes = typographic ? quoteThemes(brand) : [];
 
   const shots: Shot[] = [];
   for (let v = 1; v <= brief.variants; v++) {
     const camera = CAMERA_MOVES[(v - 1) % CAMERA_MOVES.length]!;
     const shotTokens = { ...tokens, camera };
+    if (typographic) {
+      const theme = themes[(v - 1) % themes.length]!;
+      shots.push({
+        variant: v,
+        image_prompt: `Typographic ${template?.layout} (${theme.name} theme): "${brief.hook}"`,
+        negative_prompt: "",
+        reference_images: [],
+        aspect,
+        theme: theme.name,
+      });
+      continue;
+    }
     const shot: Shot = {
       variant: v,
       image_prompt: interpolate(prompts.image.template, shotTokens),
@@ -156,9 +172,10 @@ export function compileBase(input: CompileInput): PromptPlan {
   }
 
   // Feedback loop: bias this compile from past runs (SPEC "dotted arrow").
-  const learned = applyMemory(shots, brief, brand, input.memory);
+  const learned = typographic ? undefined : applyMemory(shots, brief, brand, input.memory);
 
-  const caption = `${brief.hook} ${brief.cta}`.trim();
+  // A quote card already shows the statement; its fallback caption is just the CTA.
+  const caption = (typographic ? brief.cta : `${brief.hook} ${brief.cta}`).trim();
   const hashtags = deriveHashtags(brand, brief);
   const script =
     brief.format === "video" ? `${brief.hook} ${brief.cta}`.trim() : undefined;
@@ -171,15 +188,16 @@ export function compileBase(input: CompileInput): PromptPlan {
     shots,
     copy: { caption, hashtags, ...(script ? { script } : {}) },
     routing: {
-      image_model: routes.image.endpoint,
+      image_model: typographic ? `local:${template?.layout}` : routes.image.endpoint,
       video_model: brief.format === "video" ? routes.video.endpoint : null,
       copy_model: routes.copy.model,
       score_model: routes.score.model,
       voice_model: brief.format === "video" ? routes.voice.model : null,
     },
-    estimated_credits: estimateCredits(brief, routes),
+    estimated_credits: estimateCredits(brief, routes, template),
     versions: input.versions,
     post_kind: template?.mode ?? "variants",
+    ...(typographic ? { renderer: "typographic" as const } : {}),
     ...(learned ? { learned } : {}),
   };
 

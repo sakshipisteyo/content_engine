@@ -89,9 +89,9 @@ interface ScoreSoft {
   platform_fit: number;
 }
 
-export function ScoreBars({ soft }: { soft: ScoreSoft | null }) {
+export function ScoreBars({ soft, emptyNote }: { soft: ScoreSoft | null; emptyNote?: string }) {
   if (!soft) {
-    return <div className="text-[13px] text-muted">No soft scores (variant hard-failed).</div>;
+    return <div className="text-[13px] text-muted">{emptyNote ?? "No soft scores (variant hard-failed)."}</div>;
   }
   return (
     <div className="flex flex-col gap-1.5 text-[13px]">

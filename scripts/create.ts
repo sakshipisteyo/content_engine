@@ -3,7 +3,9 @@
  * on the review board immediately (real generation happens later with keys).
  *   tsx scripts/create.ts --brand banjaaran --template ugc-ad --hook "..." --cta "..." \
  *     [--products a,b] [--anchor warm-evening] [--angle "..."] [--platform instagram] \
- *     [--variants 3] [--credit-cap 40] [--product-image uploads/x.jpg] [--id <id>]
+ *     [--variants 3] [--credit-cap 40] [--product-image uploads/x.jpg] [--id <id>] \
+ *     [--attribution "Name"]
+ * Typographic templates (quote-card) render right away — local, 0 credits, no keys.
  * Prints: created <id>
  */
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -15,7 +17,9 @@ import {
   loadBrand,
   loadPrompts,
   loadRoutes,
+  loadScoreConfig,
   computeVersions,
+  runTypographic,
   jobFromTemplate,
   compileBase,
   loadBrandMemoryReadOnly,
@@ -65,6 +69,7 @@ const inputs: JobInputs = {
   variants: arg("variants") ? Number(arg("variants")) : undefined,
   credit_cap: arg("credit-cap") ? Number(arg("credit-cap")) : undefined,
   product_image: arg("product-image"),
+  attribution: arg("attribution"),
 };
 
 const brief = jobFromTemplate(template, inputs);
@@ -72,19 +77,33 @@ writeFileSync(join(PATHS.briefs, `${id}.yaml`), yamlStringify(brief));
 
 // Dry-compile so it appears on the board (no provider calls).
 const memory = loadBrandMemoryReadOnly(brandKey, () => openLedger());
-const plan = compileBase({
-  brief,
-  brand,
-  prompts: loadPrompts(),
-  routes: loadRoutes(),
-  versions: computeVersions(brandKey),
-  brandKey,
-  memory,
-  template,
-});
+const prompts = loadPrompts();
+const routes = loadRoutes();
+const versions = computeVersions(brandKey);
+const plan = compileBase({ brief, brand, prompts, routes, versions, brandKey, memory, template });
 const dir = join(PATHS.out, id);
 mkdirSync(dir, { recursive: true });
 writeFileSync(join(dir, "prompt.json"), JSON.stringify(plan, null, 2));
 writeFileSync(join(dir, "brief.json"), JSON.stringify(brief, null, 2));
+
+// Typographic posts cost nothing to render, so produce the finished post now.
+if (template.renderer === "typographic") {
+  const ledger = openLedger();
+  try {
+    await runTypographic(
+      {
+        brandKey, brand, prompts, routes, versions, ledger,
+        scoreConfig: loadScoreConfig(),
+        runId: `create-${Date.now()}`,
+        concurrency: 1,
+      },
+      brief,
+      plan,
+      template,
+    );
+  } finally {
+    ledger.close();
+  }
+}
 
 console.log(`created ${id}`);

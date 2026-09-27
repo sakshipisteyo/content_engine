@@ -13,6 +13,7 @@ export interface JobInputs {
   variants?: number;
   credit_cap?: number;
   product_image?: string;
+  attribution?: string;
 }
 
 export function jobFromTemplate(template: Template, inputs: JobInputs): Brief {
@@ -30,6 +31,7 @@ export function jobFromTemplate(template: Template, inputs: JobInputs): Brief {
     credit_cap: inputs.credit_cap ?? template.default_credit_cap,
     template: template.key,
     ...(inputs.product_image ? { product_image: inputs.product_image } : {}),
+    ...(inputs.attribution?.trim() ? { attribution: inputs.attribution.trim() } : {}),
   };
   return BriefSchema.parse(brief);
 }

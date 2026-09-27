@@ -14,6 +14,9 @@ import {
   loadBrand,
   loadRoutes,
   loadPrompts,
+  loadTemplate,
+  loadScoreConfig,
+  runTypographic,
   computeVersions,
   compileBase,
   brandAssetPath,
@@ -84,6 +87,22 @@ async function main() {
   for (const { brief } of briefs) {
     const brand = loadBrand(brief.brand);
     const versions = computeVersions(brief.brand);
+
+    // Text posts render locally for free, so seed them with the real output.
+    const template = brief.template ? loadTemplate(brief.template) : undefined;
+    if (template?.renderer === "typographic") {
+      const ctx = {
+        brandKey: brief.brand, brand, prompts, routes, versions, ledger, runId,
+        scoreConfig: loadScoreConfig(), concurrency: 1,
+      };
+      const plan = compileBase({ brief, brand, prompts, routes, versions, brandKey: brief.brand, template });
+      mkdirSync(join(PATHS.out, brief.id), { recursive: true });
+      writeFileSync(join(PATHS.out, brief.id, "prompt.json"), JSON.stringify(plan, null, 2));
+      writeFileSync(join(PATHS.out, brief.id, "brief.json"), JSON.stringify(brief, null, 2));
+      const res = await runTypographic(ctx, brief, plan, template);
+      console.log(`seeded ${brief.id} (text post, ${res.survivors} survivors)`);
+      continue;
+    }
     const plan = compileBase({ brief, brand, prompts, routes, versions, brandKey: brief.brand });
     const dir = join(PATHS.out, brief.id);
     mkdirSync(dir, { recursive: true });

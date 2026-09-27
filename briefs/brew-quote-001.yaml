@@ -1,0 +1,15 @@
+id: brew-quote-001
+brand: brewcraft
+format: image
+platform: linkedin
+hook: Make yourself easy to root for. Be kind. Be reliable. Celebrate other
+  people's wins.
+angle: Quote Card (text post)
+cta: Follow for more
+products:
+  - dark-roast-jar
+style_anchor: morning-ritual
+variants: 3
+credit_cap: 0
+template: quote-card
+attribution: Blake Burge

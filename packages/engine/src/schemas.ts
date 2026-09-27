@@ -64,6 +64,8 @@ export const BriefSchema = z
     template: z.string().optional(),
     /** Uploaded product image (path under brand assets or uploads/), the hero subject. */
     product_image: z.string().optional(),
+    /** Typographic posts: credit line under the statement (e.g. a quoted person's name). */
+    attribution: z.string().optional(),
   })
   .strict();
 export type Brief = z.infer<typeof BriefSchema>;
@@ -71,6 +73,17 @@ export type Brief = z.infer<typeof BriefSchema>;
 /** Ad-type template — a reusable recipe (UGC ad, product hero, carousel, founder story). */
 export const TemplateMode = z.enum(["variants", "slides"]);
 export type TemplateMode = z.infer<typeof TemplateMode>;
+
+/**
+ * Who draws the pixels: Higgsfield (AI photo/video) or the local typographic renderer
+ * (text-first layouts drawn with sharp — no provider credits, no keys).
+ */
+export const Renderer = z.enum(["higgsfield", "typographic"]);
+export type Renderer = z.infer<typeof Renderer>;
+
+/** Typographic layouts the local renderer knows (packages/engine/src/typographic.ts). */
+export const TypographicLayout = z.enum(["quote-card"]);
+export type TypographicLayout = z.infer<typeof TypographicLayout>;
 
 export const TemplateSchema = z
   .object({
@@ -81,6 +94,14 @@ export const TemplateSchema = z
     platform: Platform,
     aspect: Aspect.optional(),
     mode: TemplateMode.default("variants"),
+    renderer: Renderer.default("higgsfield"),
+    /** Required when renderer is "typographic". */
+    layout: TypographicLayout.optional(),
+    /** Create-form hints: what the hook field means for this template. */
+    hook_label: z.string().optional(),
+    hook_placeholder: z.string().optional(),
+    /** Create form offers an attribution (credit line) field. */
+    asks_attribution: z.boolean().default(false),
     default_variants: z.number().int().min(1).max(10),
     default_credit_cap: z.number().nonnegative(),
     uses_product_image: z.boolean().default(true),
@@ -89,7 +110,11 @@ export const TemplateSchema = z
     copy_style: z.string().default(""),
     negative_extra: z.string().default(""),
   })
-  .strict();
+  .strict()
+  .refine((t) => t.renderer !== "typographic" || t.layout !== undefined, {
+    message: 'typographic templates must set "layout"',
+    path: ["layout"],
+  });
 export type Template = z.infer<typeof TemplateSchema>;
 
 /* ------------------------------------------------------------------ Brand */
@@ -128,6 +153,20 @@ export const BrandSchema = z
     products: z.record(z.string(), ProductSchema),
     style_anchors: z.record(z.string(), StyleAnchorSchema),
     voice_id: z.string().min(1),
+    /**
+     * Social identity shown on typographic posts (quote cards). Defaults: display_name =
+     * name, handle derived from name, avatar = logo. Always the brand's OWN identity.
+     */
+    social: z
+      .object({
+        display_name: z.string().min(1).optional(),
+        handle: z.string().min(1).optional(),
+        avatar: z.string().min(1).optional(),
+      })
+      .strict()
+      .optional(),
+    /** Font family for typographic posts (any installed family; default sans-serif). */
+    font: z.string().min(1).optional(),
     /** Optional monthly Higgsfield credit budget, for the board's budget bar. */
     monthly_credit_budget: z.number().positive().optional(),
   })
@@ -145,6 +184,8 @@ export const ShotSchema = z
     aspect: Aspect,
     video_prompt: z.string().optional(),
     camera: z.string().optional(),
+    /** Typographic posts: colour theme for this variant. */
+    theme: z.string().optional(),
   })
   .strict();
 export type Shot = z.infer<typeof ShotSchema>;
@@ -208,6 +249,8 @@ export const PromptPlanSchema = z
     versions: VersionsSchema,
     learned: LearnedSchema.optional(),
     post_kind: PostKind.default("variants"),
+    /** Set for typographic posts; absent means Higgsfield. */
+    renderer: Renderer.optional(),
   })
   .strict();
 export type PromptPlan = z.infer<typeof PromptPlanSchema>;

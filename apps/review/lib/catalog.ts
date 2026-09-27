@@ -18,6 +18,11 @@ export interface TemplateCatalog {
   format: string;
   platform: string;
   usesProductImage: boolean;
+  /** "typographic" = drawn locally from the words (quote card); no photo, 0 credits. */
+  renderer: string;
+  hookLabel: string | null;
+  hookPlaceholder: string | null;
+  asksAttribution: boolean;
 }
 
 function yamlFiles(dir: string): string[] {
@@ -64,6 +69,10 @@ export function listTemplateCatalog(): TemplateCatalog[] {
         format?: string;
         platform?: string;
         uses_product_image?: boolean;
+        renderer?: string;
+        hook_label?: string;
+        hook_placeholder?: string;
+        asks_attribution?: boolean;
       };
       out.push({
         key: y.key ?? f.replace(/\.ya?ml$/, ""),
@@ -72,6 +81,10 @@ export function listTemplateCatalog(): TemplateCatalog[] {
         format: y.format ?? "image",
         platform: y.platform ?? "instagram",
         usesProductImage: y.uses_product_image !== false,
+        renderer: y.renderer ?? "higgsfield",
+        hookLabel: y.hook_label ?? null,
+        hookPlaceholder: y.hook_placeholder ?? null,
+        asksAttribution: y.asks_attribution === true,
       });
     } catch {
       /* skip malformed template */

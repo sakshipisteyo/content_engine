@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getBriefDetail } from "../../../lib/data";
+import { getBriefDetail, type VariantView } from "../../../lib/data";
 import { StatusPill, Pill, Preview, ScoreBars } from "../../components/ui";
 import { CaptionBox } from "../../components/CaptionBox";
 import { DecisionBar } from "../../components/DecisionBar";
@@ -27,6 +27,7 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
   const format = d.plan?.format ?? d.brief?.format ?? "image";
   const hook = d.brief?.hook ?? d.plan?.copy.caption ?? id;
   const isSlides = d.plan?.post_kind === "slides";
+  const isText = d.plan?.renderer === "typographic";
   const hasMedia = d.survivors.some((v) => v.media !== null);
 
   return (
@@ -75,6 +76,8 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
                 </div>
               </div>
             </div>
+          ) : isText ? (
+            <TextPostVariants id={id} survivors={d.survivors} hidden={d.hidden} />
           ) : isSlides ? (
             <div className="flex flex-col gap-4">
               <div className="text-xs text-muted font-semibold tracking-wide">
@@ -168,7 +171,10 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
               <h2 className="m-0 font-display text-lg font-medium">Why this scored highest</h2>
               {scoreAvg && <span className="text-[13px] font-semibold text-forest">{scoreAvg} / 5</span>}
             </div>
-            <ScoreBars soft={soft} />
+            <ScoreBars
+              soft={soft}
+              emptyNote={isText ? "Text posts are checked for contrast and fit (below); no vision scoring." : undefined}
+            />
             {top?.card?.reasons && top.card.reasons.length > 0 && (
               <ul className="text-xs text-muted list-disc pl-4 flex flex-col gap-0.5">
                 {top.card.reasons.map((r, i) => (
@@ -216,10 +222,22 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
           <section className="flex flex-col gap-2">
             <h2 className="m-0 font-display text-lg font-medium">Brief this came from</h2>
             <div className="grid grid-cols-2 gap-y-2 gap-x-4 text-[13px]">
-              <Field label="Hook" value={d.brief?.hook} />
-              <Field label="Angle" value={d.brief?.angle} />
-              <Field label="CTA" value={d.brief?.cta} />
-              <Field label="Style anchor" value={d.brief?.style_anchor} />
+              {isText ? (
+                <>
+                  <div className="col-span-2">
+                    <Field label="Statement" value={d.brief?.hook} />
+                  </div>
+                  <Field label="Credit line" value={d.brief?.attribution} />
+                  <Field label="CTA" value={d.brief?.cta} />
+                </>
+              ) : (
+                <>
+                  <Field label="Hook" value={d.brief?.hook} />
+                  <Field label="Angle" value={d.brief?.angle} />
+                  <Field label="CTA" value={d.brief?.cta} />
+                  <Field label="Style anchor" value={d.brief?.style_anchor} />
+                </>
+              )}
             </div>
           </section>
 
@@ -227,6 +245,67 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
           <DecisionBar briefId={id} topVariant={d.topVariant} status={d.status} />
         </aside>
       </div>
+    </div>
+  );
+}
+
+const TEXT_SIZES = [
+  { file: "final_4x5.jpg", label: "4:5" },
+  { file: "final_1x1.jpg", label: "1:1" },
+  { file: "final_9x16.jpg", label: "9:16" },
+];
+
+/** Typographic posts: every theme side by side, uncropped, with per-size downloads. */
+function TextPostVariants({
+  id,
+  survivors,
+  hidden,
+}: {
+  id: string;
+  survivors: VariantView[];
+  hidden: { variant: number; reasons: string[] }[];
+}) {
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="text-xs text-muted font-semibold tracking-wide">
+        TEXT POST · {survivors.length} THEME{survivors.length === 1 ? "" : "S"} · 0 CREDITS
+      </div>
+      <div className="flex gap-5 flex-wrap">
+        {survivors.map((v) => (
+          <div key={v.variant} className="flex flex-col gap-2 w-[300px]">
+            <div className="relative">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              {v.media && (
+                <img
+                  src={v.media}
+                  alt={`${v.theme ?? "variant"} theme preview`}
+                  className="w-[300px] h-auto rounded-[14px] border border-line2"
+                />
+              )}
+              <span className="absolute top-2.5 left-2.5 px-2 py-0.5 rounded-md bg-ink text-white text-xs font-semibold capitalize">
+                {v.theme ?? `Variant ${v.variant}`}
+              </span>
+            </div>
+            <div className="flex gap-3 text-[12px] font-semibold">
+              {TEXT_SIZES.map((s) => (
+                <a
+                  key={s.file}
+                  href={`/api/media/${id}/v${v.variant}/${s.file}`}
+                  download
+                  className="text-clay hover:text-clay-dark"
+                >
+                  ↓ {s.label}
+                </a>
+              ))}
+            </div>
+          </div>
+        ))}
+      </div>
+      {hidden.length > 0 && (
+        <div className="text-xs text-muted leading-relaxed">
+          {hidden.length} hidden: {hidden.map((h) => `#${h.variant} (${h.reasons.join(", ")})`).join("; ")}
+        </div>
+      )}
     </div>
   );
 }

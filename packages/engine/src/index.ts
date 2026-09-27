@@ -11,5 +11,6 @@ export * from "./score";
 export * from "./media";
 export * from "./refine";
 export * from "./assemble";
+export * from "./typographic";
 export * from "./ledger";
 export * from "./pipeline";

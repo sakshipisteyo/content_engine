@@ -7,6 +7,7 @@
 import { mkdirSync, existsSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import pLimit from "p-limit";
+import sharp from "sharp";
 import {
   type Brand,
   type Brief,
@@ -40,6 +41,7 @@ import {
 import { refineCopy, hasBannedWord } from "./refine";
 import { assembleImage, assembleVideo, writeCaption, hasFfmpeg } from "./assemble";
 import { downloadToFile } from "./media";
+import { renderTypographicVariant } from "./typographic";
 
 export interface PipelineCtx {
   brandKey: string;
@@ -419,6 +421,7 @@ export async function runBrief(
 ): Promise<BriefResult> {
   const template = brief.template ? loadTemplate(brief.template) : undefined;
   const plan = stageCompile(ctx, brief, template);
+  if (template?.renderer === "typographic") return runTypographic(ctx, brief, plan, template);
 
   const heroRes = await stageHero(ctx, brief, plan);
   if (heroRes.generated.length === 0) {
@@ -614,4 +617,104 @@ async function stageAssemble(
       });
     }
   }
+}
+
+/**
+ * Typographic posts (quote cards): render every variant locally in place of the
+ * hero/score-1/assemble stages, then copy (only when an OpenRouter key is present —
+ * otherwise the compiled caption stands). Costs 0 credits; safe to run without keys.
+ */
+export async function runTypographic(
+  ctx: PipelineCtx,
+  brief: Brief,
+  plan: PromptPlan,
+  template: Template,
+): Promise<BriefResult> {
+  const layout = template.layout!;
+  const avatarRel = ctx.brand.social?.avatar ?? ctx.brand.logo;
+  const avatarPath = brandAssetPath(ctx.brandKey, avatarRel);
+  const primary = plan.shots[0]!.aspect;
+  const aspects = [...new Set([primary, ...CROP_ASPECTS])];
+
+  const cards: ScoreCard[] = [];
+  for (const shot of plan.shots) {
+    const start = Date.now();
+    const dir = variantDir(brief.id, shot.variant);
+    mkdirSync(dir, { recursive: true });
+    try {
+      const out = await renderTypographicVariant(
+        layout, ctx.brand, brief, shot.variant, aspects, existsSync(avatarPath) ? avatarPath : undefined,
+      );
+      for (const { aspect, result } of out.renders) {
+        if (aspect === primary) writeFileSync(join(dir, "hero.png"), result.image);
+        if (CROP_ASPECTS.includes(aspect)) {
+          // 4:4:4 chroma keeps small text edges crisp in the JPEG.
+          await sharp(result.image)
+            .flatten({ background: out.theme.background })
+            .jpeg({ quality: 95, chromaSubsampling: "4:4:4" })
+            .toFile(join(dir, `final_${aspect.replace(":", "x")}.jpg`));
+        }
+      }
+      cards.push(out.card);
+      record(ctx, {
+        brief_id: brief.id,
+        variant: shot.variant,
+        stage: "hero",
+        model: plan.routing.image_model,
+        seconds: elapsed(start),
+        status: "ok",
+        started_at: now(),
+      });
+      record(ctx, {
+        brief_id: brief.id,
+        variant: shot.variant,
+        stage: "score-1",
+        model: null,
+        status: out.card.hard_fails.length ? "flagged" : "ok",
+        error: out.card.hard_fails.length ? out.card.hard_fails.join(",") : null,
+        started_at: now(),
+      });
+    } catch (e) {
+      record(ctx, {
+        brief_id: brief.id,
+        variant: shot.variant,
+        stage: "hero",
+        model: plan.routing.image_model,
+        seconds: elapsed(start),
+        status: "failed",
+        error: (e as Error).message,
+        started_at: now(),
+      });
+    }
+  }
+  rankCards(cards);
+  for (const card of cards) {
+    writeFileSync(join(variantDir(brief.id, card.variant), "score.json"), JSON.stringify(card, null, 2));
+  }
+  const survivors = cards.filter((c) => c.hard_fails.length === 0).map((c) => c.variant);
+
+  if (process.env.OPENROUTER_API_KEY) {
+    await stageCopy(ctx, brief, plan, template);
+  } else {
+    record(ctx, {
+      brief_id: brief.id,
+      variant: null,
+      stage: "copy",
+      model: ctx.routes.copy.model,
+      status: "skipped",
+      error: "no OPENROUTER_API_KEY: kept the compiled caption",
+      started_at: now(),
+    });
+  }
+
+  for (const v of survivors) {
+    writeCaption(variantDir(brief.id, v), plan.copy.caption, plan.copy.hashtags);
+    record(ctx, { brief_id: brief.id, variant: v, stage: "assemble", status: "ok", started_at: now() });
+  }
+  return {
+    brief_id: brief.id,
+    status: cards.length ? "ok" : "failed",
+    spent_credits: 0,
+    survivors: survivors.length,
+  };
 }

@@ -1,0 +1,32 @@
+name: BrewCraft Coffee
+category: specialty coffee
+audience: urban professionals 25-40, morning ritual lovers, craft coffee enthusiasts
+tone: [bold, warm, artisanal, grounded]
+banned_words: [cheap, instant, artificial, basic]
+banned_visuals: [plastic cups, fast food settings, sterile white backgrounds]
+palette: ['#3B1F0B', '#C8956C', '#F5E6D3', '#1A1A1A']
+logo: assets/logo.png
+products:
+  dark-roast-jar:
+    name: Dark Roast Reserve
+    price_inr: 850
+    images: []
+  cold-brew-bottle:
+    name: Cold Brew Concentrate
+    price_inr: 450
+    images: []
+  pour-over-bag:
+    name: Single Origin Pour Over
+    price_inr: 320
+    images: []
+style_anchors:
+  morning-ritual:
+    description: warm morning light through window, steam rising from cup, wooden table, shallow depth of field
+    references: []
+  cafe-noir:
+    description: dark moody lighting, coffee beans scattered, vintage brass elements, dramatic shadows
+    references: []
+  bean-to-cup:
+    description: macro close-up of coffee beans, roasting process, artisan craft details, warm tones
+    references: []
+voice_id: REPLACE_WITH_ELEVENLABS_VOICE_ID

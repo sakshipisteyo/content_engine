@@ -18,6 +18,14 @@ products:
     name: Antique Maroon
     price_inr: 3600
     images: [assets/maroon-1.jpg]
+  leather-tote:
+    name: Artisan Leather Tote
+    price_inr: 4800
+    images: []
+  woven-clutch:
+    name: Handwoven Jute Clutch
+    price_inr: 1800
+    images: []
 style_anchors:
   warm-evening:
     description: golden hour, street, shallow depth

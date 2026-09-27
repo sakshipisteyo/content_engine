@@ -1,0 +1,13 @@
+id: banj-product-hero-l1ym8
+brand: banjaaran
+format: image
+platform: instagram
+hook: New content
+angle: Product Hero (Image)
+cta: Learn more
+products:
+  - kolhapuri-tan
+style_anchor: warm-evening
+variants: 3
+credit_cap: 20
+template: product-hero

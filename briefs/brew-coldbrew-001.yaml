@@ -1,0 +1,13 @@
+id: brew-coldbrew-001
+brand: brewcraft
+format: image
+platform: instagram
+hook: 12 hours of patience in every bottle.
+angle: cold brew bottle on ice, condensation drops, summer light
+cta: Try Cold Brew
+products:
+  - cold-brew-bottle
+style_anchor: cafe-noir
+variants: 1
+credit_cap: 5
+template: product-hero

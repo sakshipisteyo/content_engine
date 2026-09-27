@@ -1,0 +1,13 @@
+id: brew-beans-macro-001
+brand: brewcraft
+format: image
+platform: instagram
+hook: Roasted at 220 degrees. Perfected over 3 generations.
+angle: macro shot of roasted coffee beans, artisan craft detail
+cta: Explore our roasts
+products:
+  - pour-over-bag
+style_anchor: bean-to-cup
+variants: 1
+credit_cap: 5
+template: product-hero

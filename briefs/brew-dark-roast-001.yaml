@@ -1,0 +1,13 @@
+id: brew-dark-roast-001
+brand: brewcraft
+format: image
+platform: instagram
+hook: Your morning deserves better than instant.
+angle: premium dark roast jar, morning light, steam rising
+cta: Shop Dark Roast
+products:
+  - dark-roast-jar
+style_anchor: morning-ritual
+variants: 1
+credit_cap: 5
+template: product-hero

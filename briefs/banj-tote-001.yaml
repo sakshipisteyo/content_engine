@@ -1,0 +1,13 @@
+id: banj-tote-001
+brand: banjaaran
+format: image
+platform: instagram
+hook: Carry the whole market home. Beautifully.
+angle: lifestyle product hero, everyday luxury
+cta: Shop totes
+products:
+  - leather-tote
+style_anchor: warm-evening
+variants: 1
+credit_cap: 5
+template: product-hero

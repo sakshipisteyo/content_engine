@@ -1,0 +1,13 @@
+id: banj-carousel-4sm80
+brand: banjaaran
+format: image
+platform: instagram
+hook: New content
+angle: Carousel (slides)
+cta: Learn more
+products:
+  - kolhapuri-tan
+style_anchor: warm-evening
+variants: 3
+credit_cap: 24
+template: carousel

@@ -1,0 +1,13 @@
+id: banj-maroon-hero-001
+brand: banjaaran
+format: image
+platform: instagram
+hook: The colour that never whispers.
+angle: bold product reveal
+cta: Shop now
+products:
+  - antique-maroon
+style_anchor: warm-evening
+variants: 1
+credit_cap: 5
+template: product-hero

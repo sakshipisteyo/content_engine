@@ -2,7 +2,7 @@ import "server-only";
 import { mkdirSync } from "node:fs";
 import { dirname } from "node:path";
 import { LEDGER_PATH } from "./repo";
-import type { LedgerStage, Decision } from "./types";
+import type { LedgerStage, Decision, ScheduleEntry, ScheduleStatus } from "./types";
 
 // Same schema the engine uses (CREATE IF NOT EXISTS keeps them compatible).
 const SCHEMA = `
@@ -16,6 +16,12 @@ CREATE TABLE IF NOT EXISTS decisions (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   brief_id TEXT NOT NULL, variant INTEGER, action TEXT NOT NULL,
   note TEXT, rating INTEGER, decided_at TEXT NOT NULL
+);
+CREATE TABLE IF NOT EXISTS schedule (
+  id INTEGER PRIMARY KEY AUTOINCREMENT,
+  brief_id TEXT NOT NULL, variant INTEGER, platform TEXT NOT NULL,
+  scheduled_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'scheduled',
+  created_at TEXT NOT NULL
 );
 `;
 
@@ -67,6 +73,54 @@ export function addDecision(d: Decision): void {
       `INSERT INTO decisions (brief_id, variant, action, note, rating, decided_at)
        VALUES (?, ?, ?, ?, ?, ?)`,
     ).run(d.brief_id, d.variant, d.action, d.note, d.rating, d.decided_at);
+  } finally {
+    db.close();
+  }
+}
+
+export function getSchedule(): ScheduleEntry[] {
+  const db = open();
+  try {
+    const rows = db.prepare("SELECT brief_id, variant, platform, scheduled_at, status, created_at FROM schedule ORDER BY scheduled_at").all() as Array<Record<string, unknown>>;
+    return rows.map((r) => ({
+      brief_id: String(r.brief_id),
+      variant: r.variant == null ? null : Number(r.variant),
+      platform: String(r.platform),
+      scheduled_at: String(r.scheduled_at),
+      status: String(r.status) as ScheduleStatus,
+      created_at: String(r.created_at),
+    }));
+  } finally {
+    db.close();
+  }
+}
+
+export function addScheduleEntry(e: ScheduleEntry): void {
+  const db = open();
+  try {
+    db.prepare(
+      `INSERT INTO schedule (brief_id, variant, platform, scheduled_at, status, created_at)
+       VALUES (?, ?, ?, ?, ?, ?)`,
+    ).run(e.brief_id, e.variant, e.platform, e.scheduled_at, e.status, e.created_at);
+  } finally {
+    db.close();
+  }
+}
+
+export function updateScheduleStatus(briefId: string, status: ScheduleStatus): void {
+  const db = open();
+  try {
+    db.prepare("UPDATE schedule SET status = ? WHERE brief_id = ?").run(status, briefId);
+  } finally {
+    db.close();
+  }
+}
+
+export function reschedule(briefId: string, newDate: string): void {
+  const db = open();
+  try {
+    db.prepare("UPDATE schedule SET scheduled_at = ? WHERE brief_id = ? AND status = 'scheduled'")
+      .run(newDate, briefId);
   } finally {
     db.close();
   }

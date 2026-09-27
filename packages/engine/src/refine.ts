@@ -2,7 +2,7 @@
  * Claude-backed copy generation for the copy stage (stage 5). Returns caption,
  * hashtags and (for video) a VO script. Banned-word enforcement lives in the pipeline.
  */
-import { json, type ObjectSchema } from "./providers/anthropic";
+import { json, type ObjectSchema } from "./providers/openrouter";
 import { interpolate } from "./text";
 import { CopySchema, type Brand, type Brief, type Copy, type PromptsFile } from "./schemas";
 

@@ -97,3 +97,14 @@ export interface Decision {
 }
 
 export type BriefStatus = "pending" | "approved" | "rejected" | "failed";
+
+export type ScheduleStatus = "scheduled" | "published" | "cancelled";
+
+export interface ScheduleEntry {
+  brief_id: string;
+  variant: number | null;
+  platform: string;
+  scheduled_at: string;
+  status: ScheduleStatus;
+  created_at: string;
+}

@@ -11,7 +11,6 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "0.126.0",
     "@elevenlabs/elevenlabs-js": "2.68.0",
     "@higgsfield/client": "0.2.6",
     "dotenv": "^16.4.5",

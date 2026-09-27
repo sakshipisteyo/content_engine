@@ -29,7 +29,7 @@ import { loadBrandMemory } from "./memory";
 import { openLedger, now, type Ledger } from "./ledger";
 import * as higgs from "./providers/higgsfield";
 import * as eleven from "./providers/elevenlabs";
-import { vision, type ObjectSchema } from "./providers/anthropic";
+import { vision, type ObjectSchema } from "./providers/openrouter";
 import {
   hardChecks,
   buildRubric,

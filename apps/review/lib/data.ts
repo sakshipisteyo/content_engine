@@ -3,7 +3,7 @@ import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
 import { OUT_DIR, ROOT } from "./repo";
-import { getStages, getDecisions } from "./ledger";
+import { getStages, getDecisions, getSchedule } from "./ledger";
 import type {
   Brief,
   BriefStatus,
@@ -85,11 +85,13 @@ export interface BriefSummary {
   aspect: string;
   brand: string;
   estimatedCredits: number;
+  scheduledAt: string | null;
 }
 
 export function listBriefs(brandFilter?: string): BriefSummary[] {
   const decisions = getDecisions();
   const stages = getStages();
+  const scheduled = getSchedule();
   const out: BriefSummary[] = [];
   for (const id of listBriefIds()) {
     const plan = readJson<PromptPlan>(join(OUT_DIR, id, "prompt.json"));
@@ -100,6 +102,7 @@ export function listBriefs(brandFilter?: string): BriefSummary[] {
     const survivors = cards.filter((c) => c.hard_fails.length === 0);
     const top = survivors[0] ?? null;
     const format = plan?.format ?? brief?.format ?? "image";
+    const sch = scheduled.find((s) => s.brief_id === id && s.status === "scheduled");
     out.push({
       id,
       hook: brief?.hook ?? plan?.copy.caption ?? id,
@@ -112,6 +115,7 @@ export function listBriefs(brandFilter?: string): BriefSummary[] {
       aspect: plan?.shots.find((s) => s.variant === top?.variant)?.aspect ?? "4:5",
       brand,
       estimatedCredits: plan?.estimated_credits ?? 0,
+      scheduledAt: sch?.scheduled_at ?? null,
     });
   }
   return out;

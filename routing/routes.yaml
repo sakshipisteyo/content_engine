@@ -25,10 +25,10 @@ video:
   credits_per_second: 2             # PLACEHOLDER — confirm (=> 10 credits per 5s clip)
 
 copy:
-  model: claude-sonnet-5            # Anthropic; confirm exact id at first real call
+  model: anthropic/claude-sonnet-4  # OpenRouter model id
 
 score:
-  model: claude-sonnet-5            # Anthropic vision; confirm exact id at first real call
+  model: anthropic/claude-sonnet-4  # OpenRouter model id (vision)
 
 voice:
   model: eleven_multilingual_v2     # ElevenLabs model id

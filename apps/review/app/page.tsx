@@ -98,11 +98,16 @@ export default async function Home({ searchParams }: { searchParams: Promise<{ b
               </Link>
               <div className="px-4 pt-3.5 pb-4 flex flex-col gap-2.5 flex-1">
                 <div className="font-semibold text-sm leading-snug">{b.hook}</div>
-                <div className="text-xs text-muted flex-1 flex items-center gap-2">
+                <div className="text-xs text-muted flex-1 flex items-center gap-2 flex-wrap">
                   <span>{b.variantsReady} variant{b.variantsReady === 1 ? "" : "s"} ready</span>
                   {b.estimatedCredits > 0 && (
                     <span className="px-1.5 py-0.5 bg-active rounded text-[11px]">
                       ~{b.estimatedCredits} cr
+                    </span>
+                  )}
+                  {b.scheduledAt && (
+                    <span className="px-1.5 py-0.5 bg-forest/10 text-forest rounded text-[11px] font-medium">
+                      {new Date(b.scheduledAt).toLocaleDateString("en-IN", { month: "short", day: "numeric" })}
                     </span>
                   )}
                 </div>

@@ -47,6 +47,16 @@ export function Sidebar() {
           Fill my week
         </Link>
         <Link
+          href="/schedule"
+          className="flex items-center gap-2.5 h-11 px-3 rounded-lg text-ink no-underline hover:bg-active"
+        >
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden>
+            <rect x="3" y="4" width="18" height="18" rx="2" />
+            <path d="M16 2v4M8 2v4M3 10h18" />
+          </svg>
+          Schedule
+        </Link>
+        <Link
           href="/report"
           className="flex items-center gap-2.5 h-11 px-3 rounded-lg text-ink no-underline hover:bg-active"
         >

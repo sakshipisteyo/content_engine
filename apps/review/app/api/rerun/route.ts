@@ -12,7 +12,7 @@ function hasKeys(): boolean {
   try {
     const env = readFileSync(join(ROOT, ".env"), "utf8");
     const get = (k: string) => new RegExp(`^${k}\\s*=\\s*(.+)$`, "m").exec(env)?.[1]?.trim();
-    return Boolean(get("ANTHROPIC_API_KEY") && get("HIGGSFIELD_API_KEY"));
+    return Boolean(get("OPENROUTER_API_KEY") && get("HIGGSFIELD_API_KEY"));
   } catch {
     return false;
   }

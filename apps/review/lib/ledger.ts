@@ -1,11 +1,41 @@
 import "server-only";
-import { mkdirSync } from "node:fs";
-import { dirname } from "node:path";
-import { LEDGER_PATH } from "./repo";
 import type { LedgerStage, Decision, ScheduleEntry, ScheduleStatus } from "./types";
 
-// Same schema the engine uses (CREATE IF NOT EXISTS keeps them compatible).
-const SCHEMA = `
+const usePostgres = !!process.env.DATABASE_URL;
+
+// --------------- Postgres (Neon serverless) ---------------
+
+let pgReady = false;
+
+async function pgSql() {
+  const { neon } = await import("@neondatabase/serverless");
+  const sql = neon(process.env.DATABASE_URL!);
+  if (!pgReady) {
+    await sql`CREATE TABLE IF NOT EXISTS stages (
+      id SERIAL PRIMARY KEY,
+      run_id TEXT NOT NULL, brief_id TEXT NOT NULL, variant INTEGER, stage TEXT NOT NULL,
+      model TEXT, credits REAL NOT NULL DEFAULT 0, seconds REAL NOT NULL DEFAULT 0,
+      status TEXT NOT NULL, error TEXT, started_at TEXT NOT NULL
+    )`;
+    await sql`CREATE TABLE IF NOT EXISTS decisions (
+      id SERIAL PRIMARY KEY,
+      brief_id TEXT NOT NULL, variant INTEGER, action TEXT NOT NULL,
+      note TEXT, rating INTEGER, decided_at TEXT NOT NULL
+    )`;
+    await sql`CREATE TABLE IF NOT EXISTS schedule (
+      id SERIAL PRIMARY KEY,
+      brief_id TEXT NOT NULL, variant INTEGER, platform TEXT NOT NULL,
+      scheduled_at TEXT NOT NULL, status TEXT NOT NULL DEFAULT 'scheduled',
+      created_at TEXT NOT NULL
+    )`;
+    pgReady = true;
+  }
+  return sql;
+}
+
+// --------------- SQLite (local dev) ---------------
+
+const SQLITE_SCHEMA = `
 CREATE TABLE IF NOT EXISTS stages (
   id INTEGER PRIMARY KEY AUTOINCREMENT,
   run_id TEXT NOT NULL, brief_id TEXT NOT NULL, variant INTEGER, stage TEXT NOT NULL,
@@ -34,22 +64,38 @@ type DB = {
   close(): void;
 };
 
-// process.getBuiltinModule loads a Node builtin without an import/require the bundler
-// would try to inline (Turbopack chokes on node:sqlite otherwise). Node 24 supports it.
-const getBuiltin = (
-  process as unknown as { getBuiltinModule(id: string): { DatabaseSync: new (p: string) => DB } }
-).getBuiltinModule;
+function openSqlite(): DB {
+  const { mkdirSync } = require("node:fs") as typeof import("node:fs");
+  const { dirname, join } = require("node:path") as typeof import("node:path");
+  const { existsSync } = require("node:fs") as typeof import("node:fs");
 
-function open(): DB {
-  mkdirSync(dirname(LEDGER_PATH), { recursive: true });
+  let dir = process.cwd();
+  for (let i = 0; i < 8; i++) {
+    if (existsSync(join(dir, "pnpm-workspace.yaml"))) break;
+    const parent = dirname(dir);
+    if (parent === dir) break;
+    dir = parent;
+  }
+  const ledgerPath = join(dir, "data", "ledger.sqlite");
+  mkdirSync(dirname(ledgerPath), { recursive: true });
+
+  const getBuiltin = (
+    process as unknown as { getBuiltinModule(id: string): { DatabaseSync: new (p: string) => DB } }
+  ).getBuiltinModule;
   const { DatabaseSync } = getBuiltin("node:sqlite");
-  const db = new DatabaseSync(LEDGER_PATH);
-  db.exec(SCHEMA);
+  const db = new DatabaseSync(ledgerPath);
+  db.exec(SQLITE_SCHEMA);
   return db;
 }
 
-export function getStages(): LedgerStage[] {
-  const db = open();
+// --------------- Public API (async) ---------------
+
+export async function getStages(): Promise<LedgerStage[]> {
+  if (usePostgres) {
+    const sql = await pgSql();
+    return (await sql`SELECT * FROM stages ORDER BY id`) as LedgerStage[];
+  }
+  const db = openSqlite();
   try {
     return db.prepare("SELECT * FROM stages ORDER BY id").all() as LedgerStage[];
   } finally {
@@ -57,8 +103,12 @@ export function getStages(): LedgerStage[] {
   }
 }
 
-export function getDecisions(): Decision[] {
-  const db = open();
+export async function getDecisions(): Promise<Decision[]> {
+  if (usePostgres) {
+    const sql = await pgSql();
+    return (await sql`SELECT * FROM decisions ORDER BY id`) as Decision[];
+  }
+  const db = openSqlite();
   try {
     return db.prepare("SELECT * FROM decisions ORDER BY id").all() as Decision[];
   } finally {
@@ -66,8 +116,14 @@ export function getDecisions(): Decision[] {
   }
 }
 
-export function addDecision(d: Decision): void {
-  const db = open();
+export async function addDecision(d: Decision): Promise<void> {
+  if (usePostgres) {
+    const sql = await pgSql();
+    await sql`INSERT INTO decisions (brief_id, variant, action, note, rating, decided_at)
+              VALUES (${d.brief_id}, ${d.variant}, ${d.action}, ${d.note}, ${d.rating}, ${d.decided_at})`;
+    return;
+  }
+  const db = openSqlite();
   try {
     db.prepare(
       `INSERT INTO decisions (brief_id, variant, action, note, rating, decided_at)
@@ -78,8 +134,21 @@ export function addDecision(d: Decision): void {
   }
 }
 
-export function getSchedule(): ScheduleEntry[] {
-  const db = open();
+export async function getSchedule(): Promise<ScheduleEntry[]> {
+  if (usePostgres) {
+    const sql = await pgSql();
+    const rows = await sql`SELECT brief_id, variant, platform, scheduled_at, status, created_at
+                           FROM schedule ORDER BY scheduled_at`;
+    return rows.map((r: Record<string, unknown>) => ({
+      brief_id: String(r.brief_id),
+      variant: r.variant == null ? null : Number(r.variant),
+      platform: String(r.platform),
+      scheduled_at: String(r.scheduled_at),
+      status: String(r.status) as ScheduleStatus,
+      created_at: String(r.created_at),
+    }));
+  }
+  const db = openSqlite();
   try {
     const rows = db.prepare("SELECT brief_id, variant, platform, scheduled_at, status, created_at FROM schedule ORDER BY scheduled_at").all() as Array<Record<string, unknown>>;
     return rows.map((r) => ({
@@ -95,8 +164,14 @@ export function getSchedule(): ScheduleEntry[] {
   }
 }
 
-export function addScheduleEntry(e: ScheduleEntry): void {
-  const db = open();
+export async function addScheduleEntry(e: ScheduleEntry): Promise<void> {
+  if (usePostgres) {
+    const sql = await pgSql();
+    await sql`INSERT INTO schedule (brief_id, variant, platform, scheduled_at, status, created_at)
+              VALUES (${e.brief_id}, ${e.variant}, ${e.platform}, ${e.scheduled_at}, ${e.status}, ${e.created_at})`;
+    return;
+  }
+  const db = openSqlite();
   try {
     db.prepare(
       `INSERT INTO schedule (brief_id, variant, platform, scheduled_at, status, created_at)
@@ -107,8 +182,13 @@ export function addScheduleEntry(e: ScheduleEntry): void {
   }
 }
 
-export function updateScheduleStatus(briefId: string, status: ScheduleStatus): void {
-  const db = open();
+export async function updateScheduleStatus(briefId: string, status: ScheduleStatus): Promise<void> {
+  if (usePostgres) {
+    const sql = await pgSql();
+    await sql`UPDATE schedule SET status = ${status} WHERE brief_id = ${briefId}`;
+    return;
+  }
+  const db = openSqlite();
   try {
     db.prepare("UPDATE schedule SET status = ? WHERE brief_id = ?").run(status, briefId);
   } finally {
@@ -116,8 +196,13 @@ export function updateScheduleStatus(briefId: string, status: ScheduleStatus): v
   }
 }
 
-export function reschedule(briefId: string, newDate: string): void {
-  const db = open();
+export async function reschedule(briefId: string, newDate: string): Promise<void> {
+  if (usePostgres) {
+    const sql = await pgSql();
+    await sql`UPDATE schedule SET scheduled_at = ${newDate} WHERE brief_id = ${briefId} AND status = 'scheduled'`;
+    return;
+  }
+  const db = openSqlite();
   try {
     db.prepare("UPDATE schedule SET scheduled_at = ? WHERE brief_id = ? AND status = 'scheduled'")
       .run(newDate, briefId);

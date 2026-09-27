@@ -14,12 +14,12 @@ const PLATFORM_LABEL: Record<string, string> = {
 
 export default async function Home({ searchParams }: { searchParams: Promise<{ brand?: string }> }) {
   const { brand: brandFilter } = await searchParams;
-  const briefs = listBriefs(brandFilter);
+  const briefs = await listBriefs(brandFilter);
   const ready = briefs.filter((b) => b.status === "pending").length;
 
   const brands = listBrandCatalog();
   const activeBrand = brandFilter ? brands.find((b) => b.key === brandFilter) : null;
-  const budget = brandFilter ? getBudget(brandFilter) : null;
+  const budget = brandFilter ? await getBudget(brandFilter) : null;
 
   return (
     <div className="box-border px-10 py-8 flex flex-col gap-7">

@@ -8,9 +8,9 @@ function fmt(n: number): string {
   return Number.isFinite(n) ? n.toFixed(1) : "n/a";
 }
 
-export default function ReportPage() {
-  const stages = getStages();
-  const decisions = getDecisions();
+export default async function ReportPage() {
+  const stages = await getStages();
+  const decisions = await getDecisions();
   const briefIds = listBriefIds();
 
   const totalCredits = stages.reduce((n, s) => n + (s.credits || 0), 0);

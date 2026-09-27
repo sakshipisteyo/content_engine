@@ -9,7 +9,7 @@ export default async function SchedulePage({
   searchParams: Promise<{ brand?: string }>;
 }) {
   const { brand } = await searchParams;
-  const briefs = listBriefs(brand);
+  const briefs = await listBriefs(brand);
 
   return (
     <div className="box-border px-10 py-8 flex flex-col gap-7">

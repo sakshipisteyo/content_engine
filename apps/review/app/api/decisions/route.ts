@@ -11,7 +11,7 @@ export async function POST(req: Request) {
   if (!["approve", "reject", "edit"].includes(body.action)) {
     return Response.json({ ok: false, error: "bad action" }, { status: 400 });
   }
-  addDecision({
+  await addDecision({
     brief_id: body.brief_id,
     variant: body.variant ?? null,
     action: body.action,

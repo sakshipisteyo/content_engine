@@ -38,7 +38,6 @@ function variantDirs(id: string): number[] {
     .sort((a, b) => a - b);
 }
 
-/** First existing media file for a variant, as a /api/media URL. */
 export function mediaUrl(id: string, variant: number, format: string): string | null {
   const candidates =
     format === "video"
@@ -88,10 +87,10 @@ export interface BriefSummary {
   scheduledAt: string | null;
 }
 
-export function listBriefs(brandFilter?: string): BriefSummary[] {
-  const decisions = getDecisions();
-  const stages = getStages();
-  const scheduled = getSchedule();
+export async function listBriefs(brandFilter?: string): Promise<BriefSummary[]> {
+  const decisions = await getDecisions();
+  const stages = await getStages();
+  const scheduled = await getSchedule();
   const out: BriefSummary[] = [];
   for (const id of listBriefIds()) {
     const plan = readJson<PromptPlan>(join(OUT_DIR, id, "prompt.json"));
@@ -141,12 +140,12 @@ export interface BriefDetail {
   decision: Decision | null;
 }
 
-export function getBriefDetail(id: string): BriefDetail | null {
+export async function getBriefDetail(id: string): Promise<BriefDetail | null> {
   if (!listBriefIds().includes(id)) return null;
   const plan = readJson<PromptPlan>(join(OUT_DIR, id, "prompt.json"));
   const brief = readJson<Brief>(join(OUT_DIR, id, "brief.json"));
-  const decisions = getDecisions();
-  const stages = getStages();
+  const decisions = await getDecisions();
+  const stages = await getStages();
   const cards = loadCards(id);
   const format = plan?.format ?? brief?.format ?? "image";
 
@@ -186,7 +185,7 @@ export interface BudgetInfo {
   usedCredits: number;
 }
 
-export function getBudget(brandKey: string): BudgetInfo {
+export async function getBudget(brandKey: string): Promise<BudgetInfo> {
   let budgetCredits: number | null = null;
   try {
     const f = join(ROOT, "brand", `${brandKey}.yaml`);
@@ -196,7 +195,7 @@ export function getBudget(brandKey: string): BudgetInfo {
     }
   } catch { /* ignore */ }
 
-  const stages = getStages();
+  const stages = await getStages();
   let used = 0;
   const briefBrands = new Map<string, string>();
   for (const id of listBriefIds()) {

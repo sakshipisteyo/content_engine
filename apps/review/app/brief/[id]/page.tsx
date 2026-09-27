@@ -15,7 +15,7 @@ const PLATFORM_LABEL: Record<string, string> = {
 
 export default async function BriefPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const d = getBriefDetail(id);
+  const d = await getBriefDetail(id);
   if (!d) notFound();
 
   const top = d.survivors[0] ?? null;

@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import Link from "next/link";
 import { listBrandCatalog } from "../../lib/catalog";
 import { BrandSwitcher } from "./BrandSwitcher";
@@ -12,7 +13,9 @@ export function Sidebar() {
         <div className="font-display text-lg font-semibold">Content Engine</div>
       </div>
 
-      <BrandSwitcher brands={brands} current={null} />
+      <Suspense fallback={<div className="h-12" />}>
+        <BrandSwitcher brands={brands} current={null} />
+      </Suspense>
       <Link href="/brand/new" className="text-xs font-semibold text-clay hover:text-clay-dark px-2 -mt-3">
         + Add your brand
       </Link>

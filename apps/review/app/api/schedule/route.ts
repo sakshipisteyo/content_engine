@@ -3,7 +3,7 @@ import { addScheduleEntry, getSchedule, updateScheduleStatus, reschedule } from 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  return Response.json(getSchedule());
+  return Response.json(await getSchedule());
 }
 
 export async function POST(req: Request) {
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
     return Response.json({ error: "brief_id, platform, and scheduled_at required" }, { status: 400 });
   }
 
-  addScheduleEntry({
+  await addScheduleEntry({
     brief_id: body.brief_id,
     variant: body.variant ?? null,
     platform: body.platform,
@@ -41,9 +41,9 @@ export async function PATCH(req: Request) {
   }
 
   if (body.action === "cancel") {
-    updateScheduleStatus(body.brief_id, "cancelled");
+    await updateScheduleStatus(body.brief_id, "cancelled");
   } else if (body.action === "reschedule" && body.scheduled_at) {
-    reschedule(body.brief_id, body.scheduled_at);
+    await reschedule(body.brief_id, body.scheduled_at);
   } else {
     return Response.json({ error: "reschedule needs scheduled_at" }, { status: 400 });
   }

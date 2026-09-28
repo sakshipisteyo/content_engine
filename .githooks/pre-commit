@@ -1,0 +1,4 @@
+#!/bin/sh
+# Blocks commits that carry code-injection signs (see scripts/tripwire.mjs).
+# Enable once per clone: git config core.hooksPath .githooks
+exec node scripts/tripwire.mjs

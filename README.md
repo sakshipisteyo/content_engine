@@ -61,6 +61,23 @@ with `OPENROUTER_API_KEY` set, the copy model drafts it from the title. CLI: `--
    ```
 6. Refresh the review board — real content appears in the same screens.
 
+## Security: tripwire
+
+Commit `571b629` (2026-09-20) was injected by malware on the dev machine (the "PolinRider"
+pattern): an obfuscated payload hidden after hundreds of spaces at the end of
+`apps/review/postcss.config.mjs`, and `.gitignore` entries hiding its `temp_*_push.bat`
+helpers. The payload was removed in `b3f9dca`; the commit stays in history, so never check
+out or run `571b629`.
+
+`scripts/tripwire.mjs` fails on those signs (huge or whitespace-padded lines, obfuscation in
+config files, tracked `.bat`/`.ps1`/executables, install scripts, non-npm tarballs). It runs:
+
+- on every push/PR (`.github/workflows/tripwire.yml`)
+- before every Vercel build (`vercel.json` `buildCommand`) — a tripped wire deploys nothing
+- before every local commit, once enabled per clone: `git config core.hooksPath .githooks`
+
+Run it any time: `corepack pnpm@9.15.0 tripwire`.
+
 ## Prerequisites
 
 - Node 20+ (machine has 24). Git. ffmpeg on PATH (`winget install Gyan.FFmpeg`) — needed

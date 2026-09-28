@@ -1,4 +1,5 @@
 import "server-only";
+import { LEDGER_PATH } from "./repo";
 import type { LedgerStage, Decision, ScheduleEntry, ScheduleStatus } from "./types";
 
 const usePostgres = !!process.env.DATABASE_URL;
@@ -66,17 +67,9 @@ type DB = {
 
 function openSqlite(): DB {
   const { mkdirSync } = require("node:fs") as typeof import("node:fs");
-  const { dirname, join } = require("node:path") as typeof import("node:path");
-  const { existsSync } = require("node:fs") as typeof import("node:fs");
+  const { dirname } = require("node:path") as typeof import("node:path");
 
-  let dir = process.cwd();
-  for (let i = 0; i < 8; i++) {
-    if (existsSync(join(dir, "pnpm-workspace.yaml"))) break;
-    const parent = dirname(dir);
-    if (parent === dir) break;
-    dir = parent;
-  }
-  const ledgerPath = join(dir, "data", "ledger.sqlite");
+  const ledgerPath = LEDGER_PATH;
   mkdirSync(dirname(ledgerPath), { recursive: true });
 
   const getBuiltin = (

@@ -27,18 +27,25 @@ function findRepoRoot(): string {
 
 export const REPO_ROOT = findRepoRoot();
 
+/**
+ * Where generated state lives (briefs, uploads, out/, data/). Defaults to the repo; set
+ * CONTENT_DATA_DIR to move it somewhere writable (the board uses /tmp on Vercel, whose
+ * deployment files are read-only). Config (prompts, templates, brand) stays in the repo.
+ */
+export const DATA_ROOT = process.env.CONTENT_DATA_DIR ? resolve(process.env.CONTENT_DATA_DIR) : REPO_ROOT;
+
 export const PATHS = {
   root: REPO_ROOT,
   prompts: join(REPO_ROOT, "prompts"),
   routing: join(REPO_ROOT, "routing"),
   templates: join(REPO_ROOT, "templates"),
   brand: join(REPO_ROOT, "brand"),
-  briefs: join(REPO_ROOT, "briefs"),
-  uploads: join(REPO_ROOT, "uploads"),
-  out: join(REPO_ROOT, "out"),
-  data: join(REPO_ROOT, "data"),
-  ledger: join(REPO_ROOT, "data", "ledger.sqlite"),
-  blockers: join(REPO_ROOT, "data", "blockers.md"),
+  briefs: join(DATA_ROOT, "briefs"),
+  uploads: join(DATA_ROOT, "uploads"),
+  out: join(DATA_ROOT, "out"),
+  data: join(DATA_ROOT, "data"),
+  ledger: join(DATA_ROOT, "data", "ledger.sqlite"),
+  blockers: join(DATA_ROOT, "data", "blockers.md"),
   env: join(REPO_ROOT, ".env"),
 } as const;
 

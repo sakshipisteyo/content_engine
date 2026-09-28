@@ -10,9 +10,22 @@
  * post or claim engagement it never had. Quoting another person goes in `attribution`.
  */
 import { existsSync } from "node:fs";
+import { join } from "node:path";
 import sharp, { type OverlayOptions } from "sharp";
 import type { Aspect, Brand } from "./schemas";
 import { hexToRgb, type RGB } from "./score";
+import { PATHS } from "./config";
+
+/**
+ * Default family: DejaVu Sans, bundled in assets/fonts (free licence) and loaded by file,
+ * so text renders the same on hosts with no system fonts (Vercel functions).
+ */
+export const DEFAULT_FONT = "DejaVu Sans";
+
+function bundledFontFile(bold: boolean): string | undefined {
+  const file = join(PATHS.root, "assets", "fonts", bold ? "DejaVuSans-Bold.ttf" : "DejaVuSans.ttf");
+  return existsSync(file) ? file : undefined;
+}
 
 /* ---------------------------------------------------------------- colours */
 
@@ -123,8 +136,10 @@ export async function textImage(markup: string, opts: TextOpts): Promise<TextIma
   const weight = opts.bold ? ' weight="bold"' : "";
   // Pango letter_spacing is in 1/1024 pt; at dpi 72 a pt is a px.
   const tracking = opts.letterSpacing ? ` letter_spacing="${Math.round(opts.letterSpacing * 1024)}"` : "";
+  const fontfile = opts.font === DEFAULT_FONT ? bundledFontFile(!!opts.bold) : undefined;
   const { data, info } = await sharp({
     text: {
+      ...(fontfile ? { fontfile } : {}),
       text: `<span foreground="${opts.color}"${weight}${tracking}>${markup}</span>`,
       font: `${opts.font} ${opts.size}`,
       width: Math.round(opts.width),
@@ -298,7 +313,7 @@ function quoteImage(quote: string, font: string, size: number, color: string, wi
 export async function initialAvatar(name: string, size: number, theme: Theme): Promise<Buffer> {
   const initial = escapeMarkup((name.trim()[0] ?? "?").toUpperCase());
   const fg = contrastRatio("#FFFFFF", theme.accent) >= contrastRatio("#111111", theme.accent) ? "#FFFFFF" : "#111111";
-  const letter = await textImage(initial, { font: "sans-serif", size: Math.round(size * 0.45), color: fg, width: size, bold: true });
+  const letter = await textImage(initial, { font: DEFAULT_FONT, size: Math.round(size * 0.45), color: fg, width: size, bold: true });
   const circle = Buffer.from(
     `<svg width="${size}" height="${size}"><circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="${theme.accent}"/></svg>`,
   );

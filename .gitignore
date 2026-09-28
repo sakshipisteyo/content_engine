@@ -19,3 +19,6 @@ dist/
 # --- os / editor cruft ---
 .DS_Store
 Thumbs.db
+
+# --- engine bundle for deploys (scripts/build-engine.mjs) ---
+apps/review/.engine/

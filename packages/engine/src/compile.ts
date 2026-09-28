@@ -23,7 +23,7 @@ import {
   PLATFORM_ASPECT,
   PromptPlanSchema,
 } from "./schemas";
-import { PATHS, ConfigError } from "./config";
+import { PATHS, DATA_ROOT, ConfigError } from "./config";
 import { interpolate } from "./text";
 import type { BrandMemory } from "./memory";
 import { quoteThemes } from "./typographic";
@@ -101,7 +101,7 @@ function referenceImages(input: CompileInput): string[] {
   const anchor = brand.style_anchors[brief.style_anchor];
   const refs = new Set<string>();
   // Uploaded product image is the primary reference (the hero subject).
-  if (brief.product_image) refs.add(join(PATHS.root, brief.product_image));
+  if (brief.product_image) refs.add(join(DATA_ROOT, brief.product_image));
   for (const r of anchor?.references ?? []) refs.add(brandAssetPath(input.brandKey, r));
   for (const key of brief.products) {
     for (const img of brand.products[key]?.images ?? []) {

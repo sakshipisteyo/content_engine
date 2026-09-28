@@ -97,6 +97,7 @@ if (template.layout && BODY_LAYOUTS.includes(template.layout)) {
     die(e instanceof OutlineError ? `outline: ${e.message}` : (e as Error).message);
   }
 }
+mkdirSync(PATHS.briefs, { recursive: true });
 writeFileSync(join(PATHS.briefs, `${id}.yaml`), yamlStringify(brief));
 
 // Dry-compile so it appears on the board (no provider calls).

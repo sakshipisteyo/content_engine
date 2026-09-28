@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
-import { ROOT } from "../../../lib/repo";
+import { ROOT, engineArgs } from "../../../lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -51,7 +51,7 @@ export async function POST(req: Request) {
   }
 
   const args = [
-    "--import", "tsx", "scripts/create-brand.ts",
+    ...engineArgs("create-brand"),
     "--key", key,
     "--name", name,
     "--products", productFilenames.join(","),

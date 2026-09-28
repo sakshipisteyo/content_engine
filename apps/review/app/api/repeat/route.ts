@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ROOT, OUT_DIR } from "../../../lib/repo";
+import { ROOT, OUT_DIR, engineArgs } from "../../../lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -37,7 +37,7 @@ export async function POST(req: Request) {
   const id = `${brand.slice(0, 4)}-${template}-${Math.random().toString(36).slice(2, 7)}`;
 
   const args = [
-    "--import", "tsx", "scripts/create.ts",
+    ...engineArgs("create"),
     "--brand", brand,
     "--template", template,
     "--hook", hook,

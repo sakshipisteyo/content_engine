@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
-import { ROOT } from "../../../lib/repo";
+import { ROOT, engineArgs } from "../../../lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
     });
   }
 
-  const args = ["--import", "tsx", "scripts/run.ts", "--only", body.brief_id, "--from", body.from];
+  const args = [...engineArgs("run"), "--only", body.brief_id, "--from", body.from];
   if (body.note) args.push("--note", body.note);
 
   try {

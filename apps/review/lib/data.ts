@@ -49,6 +49,21 @@ export function mediaUrl(id: string, variant: number, format: string): string | 
   return null;
 }
 
+function carouselFiles(id: string, variant: number): Pick<VariantView, "pages" | "pdfs"> {
+  const dir = join(OUT_DIR, id, `v${variant}`);
+  const pageDir = join(dir, "pages_4x5");
+  const pages = existsSync(pageDir)
+    ? readdirSync(pageDir).filter((f) => f.endsWith(".jpg")).sort().map((f) => `/api/media/${id}/v${variant}/pages_4x5/${f}`)
+    : [];
+  const pdfs = [
+    { label: "PDF 4:5", file: "carousel_4x5.pdf" },
+    { label: "PDF 1:1", file: "carousel_1x1.pdf" },
+  ]
+    .filter((p) => existsSync(join(dir, p.file)))
+    .map((p) => ({ label: p.label, url: `/api/media/${id}/v${variant}/${p.file}` }));
+  return { pages, pdfs };
+}
+
 export function loadCards(id: string): ScoreCard[] {
   const cards: ScoreCard[] = [];
   for (const v of variantDirs(id)) {
@@ -127,6 +142,10 @@ export interface VariantView {
   media: string | null;
   aspect: string;
   cameraNote?: string;
+  theme?: string;
+  /** Text-post carousels: page image URLs (4:5) and PDF downloads. */
+  pages: string[];
+  pdfs: { label: string; url: string }[];
 }
 
 export interface BriefDetail {
@@ -159,6 +178,8 @@ export async function getBriefDetail(id: string): Promise<BriefDetail | null> {
     media: mediaUrl(id, c.variant, format),
     aspect: plan?.shots.find((s) => s.variant === c.variant)?.aspect ?? "9:16",
     cameraNote: plan?.shots.find((s) => s.variant === c.variant)?.camera,
+    theme: plan?.shots.find((s) => s.variant === c.variant)?.theme,
+    ...carouselFiles(id, c.variant),
   }));
 
   const hidden = cards

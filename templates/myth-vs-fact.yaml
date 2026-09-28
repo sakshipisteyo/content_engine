@@ -1,0 +1,26 @@
+key: myth-vs-fact
+name: Myth vs Fact (text post)
+description: Two columns that set the record straight — also works as Before/After or Don't/Do.
+format: image
+platform: instagram
+aspect: "4:5"
+mode: variants
+renderer: typographic
+layout: comparison
+hook_label: Title
+hook_placeholder: "e.g. Coffee myths, busted"
+asks_body: true
+body_label: Pairs (alternate the two labels)
+body_placeholder: |
+  Myth: Dark roast has the most caffeine.
+  Fact: Light roasts keep slightly more — roasting burns some off.
+  Myth: Espresso is a type of bean.
+  Fact: It's a brewing method; any bean can be pulled as espresso.
+draft_instructions: |
+  Write 3 myth/fact pairs for the title above as alternating lines "Myth: ..." and
+  "Fact: ...", each at most 16 words. Facts must be accurate and non-controversial.
+default_variants: 3 # one per theme: dark, light, brand colours
+default_credit_cap: 0
+uses_product_image: false
+copy_style: >
+  Ask which myth readers believed, add one line of context, then the CTA.

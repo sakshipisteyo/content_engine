@@ -1,0 +1,13 @@
+id: banj-quote-001
+brand: banjaaran
+format: image
+platform: linkedin
+hook: Good craft is slow on purpose. Every stitch is a decision someone made by hand.
+angle: Quote Card (text post)
+cta: Follow for the stories behind the stitch
+products:
+  - kolhapuri-tan
+style_anchor: warm-evening
+variants: 3
+credit_cap: 0
+template: quote-card

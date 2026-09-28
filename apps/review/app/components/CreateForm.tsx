@@ -16,12 +16,15 @@ export function CreateForm({
   const [hook, setHook] = useState("");
   const [cta, setCta] = useState("");
   const [angle, setAngle] = useState("");
+  const [attribution, setAttribution] = useState("");
+  const [body, setBody] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const brand = useMemo(() => brands.find((b) => b.key === brandKey), [brands, brandKey]);
   const template = useMemo(() => templates.find((t) => t.key === templateKey), [templates, templateKey]);
+  const isText = template?.renderer === "typographic";
   const [product, setProduct] = useState(brand?.products[0]?.key ?? "");
   const [anchor, setAnchor] = useState(brand?.anchors[0]?.key ?? "");
 
@@ -34,7 +37,9 @@ export function CreateForm({
 
   async function submit() {
     setErr(null);
-    if (!hook.trim()) return setErr("Add a hook — a few words about the post.");
+    if (!hook.trim()) {
+      return setErr(isText ? "Write the statement for the card." : "Add a hook — a few words about the post.");
+    }
     setBusy(true);
     const fd = new FormData();
     fd.set("brand", brandKey);
@@ -44,7 +49,9 @@ export function CreateForm({
     if (angle) fd.set("angle", angle);
     if (product) fd.set("product", product);
     if (anchor) fd.set("anchor", anchor);
-    if (file) fd.set("product_image", file);
+    if (file && !isText) fd.set("product_image", file);
+    if (isText && attribution.trim()) fd.set("attribution", attribution.trim());
+    if (template?.asksBody && body.trim()) fd.set("body", body.trim());
     try {
       const res = await fetch("/api/create", { method: "POST", body: fd });
       const body = (await res.json()) as { id?: string; error?: string };
@@ -76,7 +83,8 @@ export function CreateForm({
               <div className="font-display text-base font-medium">{t.name}</div>
               <div className="text-xs text-muted mt-1">{t.description}</div>
               <div className="text-[11px] text-muted mt-2 uppercase tracking-wide">
-                {t.format} · {t.platform}
+                {t.renderer === "typographic" ? "text post" : t.format} · {t.platform}
+                {t.renderer === "typographic" && " · 0 credits"}
               </div>
             </button>
           ))}
@@ -85,9 +93,10 @@ export function CreateForm({
 
       {/* Brand + product + anchor */}
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-semibold">2 · Brand & product</label>
+        <label className="text-sm font-semibold">2 · {isText ? "Brand" : "Brand & product"}</label>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Select label="Brand" value={brandKey} onChange={onBrand} options={brands.map((b) => ({ v: b.key, l: b.name }))} />
+          {!isText && (<>
           <Select
             label="Product"
             value={product}
@@ -100,10 +109,12 @@ export function CreateForm({
             onChange={setAnchor}
             options={(brand?.anchors ?? []).map((a) => ({ v: a.key, l: a.key }))}
           />
+          </>)}
         </div>
       </div>
 
-      {/* Product image upload */}
+      {/* Product image upload (photo templates only) */}
+      {!isText && (
       <div className="flex flex-col gap-2">
         <label className="text-sm font-semibold">
           3 · Product image {needsImage ? "" : <span className="text-muted font-normal">(optional for this type)</span>}
@@ -119,16 +130,66 @@ export function CreateForm({
           />
         </label>
       </div>
+      )}
 
       {/* Words */}
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-semibold">4 · A few words</label>
-        <input
-          value={hook}
-          onChange={(e) => setHook(e.target.value)}
-          placeholder="Hook — what's the post about? e.g. Hand-stitched in Kolhapur, worn in Bandra."
-          className="h-11 px-3 border border-line2 rounded-[10px] text-sm bg-field"
-        />
+        <label className="text-sm font-semibold">
+          {isText ? "3" : "4"} · {template?.hookLabel ?? "A few words"}
+        </label>
+        {isText && template?.asksBody ? (
+          <input
+            value={hook}
+            onChange={(e) => setHook(e.target.value)}
+            placeholder={template.hookPlaceholder ?? "Title"}
+            maxLength={120}
+            className="h-11 px-3 border border-line2 rounded-[10px] text-sm bg-field"
+          />
+        ) : isText ? (
+          <>
+            <textarea
+              value={hook}
+              onChange={(e) => setHook(e.target.value)}
+              placeholder={template?.hookPlaceholder ?? "Your statement"}
+              rows={4}
+              maxLength={400}
+              className="px-3 py-2.5 border border-line2 rounded-[10px] text-sm bg-field resize-y"
+            />
+            <div className="text-[11px] text-muted -mt-1">
+              {hook.length}/400 · shown on the card exactly as written, under your brand&apos;s name and handle
+            </div>
+          </>
+        ) : (
+          <input
+            value={hook}
+            onChange={(e) => setHook(e.target.value)}
+            placeholder={template?.hookPlaceholder ?? "Hook — what's the post about? e.g. Hand-stitched in Kolhapur, worn in Bandra."}
+            className="h-11 px-3 border border-line2 rounded-[10px] text-sm bg-field"
+          />
+        )}
+        {template?.asksBody && (
+          <>
+            <label className="text-xs text-muted mt-1">{template.bodyLabel ?? "Outline"}</label>
+            <textarea
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+              placeholder={template.bodyPlaceholder ?? ""}
+              rows={8}
+              className="px-3 py-2.5 border border-line2 rounded-[10px] text-sm bg-field resize-y font-mono"
+            />
+            <div className="text-[11px] text-muted -mt-1">
+              Leave blank to have it drafted from the title (needs an OpenRouter key). The example shows the format.
+            </div>
+          </>
+        )}
+        {template?.asksAttribution && (
+          <input
+            value={attribution}
+            onChange={(e) => setAttribution(e.target.value)}
+            placeholder="Credit line (optional) — who said it, if it isn't you. e.g. Blake Burge"
+            className="h-11 px-3 border border-line2 rounded-[10px] text-sm bg-field"
+          />
+        )}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <input
             value={cta}
@@ -155,7 +216,9 @@ export function CreateForm({
           {busy ? "Creating…" : "Generate post"}
         </button>
         <span className="text-xs text-muted">
-          Compiles the plan now; real pixels render once API keys are added.
+          {isText
+            ? "Renders now — dark, light and brand-colour versions, free."
+            : "Compiles the plan now; real pixels render once API keys are added."}
         </span>
       </div>
     </div>

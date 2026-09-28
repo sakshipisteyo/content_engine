@@ -3,7 +3,9 @@
  * on the review board immediately (real generation happens later with keys).
  *   tsx scripts/create.ts --brand banjaaran --template ugc-ad --hook "..." --cta "..." \
  *     [--products a,b] [--anchor warm-evening] [--angle "..."] [--platform instagram] \
- *     [--variants 3] [--credit-cap 40] [--product-image uploads/x.jpg] [--id <id>]
+ *     [--variants 3] [--credit-cap 40] [--product-image uploads/x.jpg] [--id <id>] \
+ *     [--attribution "Name"] [--body "outline text"]
+ * Typographic templates (quote-card) render right away — local, 0 credits, no keys.
  * Prints: created <id>
  */
 import { mkdirSync, writeFileSync } from "node:fs";
@@ -15,7 +17,13 @@ import {
   loadBrand,
   loadPrompts,
   loadRoutes,
+  loadScoreConfig,
   computeVersions,
+  runTypographic,
+  validateLayoutInput,
+  draftBody,
+  OutlineError,
+  BODY_LAYOUTS,
   jobFromTemplate,
   compileBase,
   loadBrandMemoryReadOnly,
@@ -65,26 +73,61 @@ const inputs: JobInputs = {
   variants: arg("variants") ? Number(arg("variants")) : undefined,
   credit_cap: arg("credit-cap") ? Number(arg("credit-cap")) : undefined,
   product_image: arg("product-image"),
+  attribution: arg("attribution"),
+  body: arg("body"),
 };
 
 const brief = jobFromTemplate(template, inputs);
+
+// Outline-driven text posts: draft the outline if left blank (needs a key), then check it.
+if (template.layout && BODY_LAYOUTS.includes(template.layout)) {
+  if (!brief.body) {
+    if (!process.env.OPENROUTER_API_KEY) {
+      die("write the outline, or add OPENROUTER_API_KEY to .env to have it drafted");
+    }
+    try {
+      brief.body = await draftBody(brand, brief, template, loadRoutes().copy.model);
+    } catch (e) {
+      die(`could not draft the outline: ${(e as Error).message}`);
+    }
+  }
+  try {
+    validateLayoutInput(template.layout, brief);
+  } catch (e) {
+    die(e instanceof OutlineError ? `outline: ${e.message}` : (e as Error).message);
+  }
+}
 writeFileSync(join(PATHS.briefs, `${id}.yaml`), yamlStringify(brief));
 
 // Dry-compile so it appears on the board (no provider calls).
 const memory = loadBrandMemoryReadOnly(brandKey, () => openLedger());
-const plan = compileBase({
-  brief,
-  brand,
-  prompts: loadPrompts(),
-  routes: loadRoutes(),
-  versions: computeVersions(brandKey),
-  brandKey,
-  memory,
-  template,
-});
+const prompts = loadPrompts();
+const routes = loadRoutes();
+const versions = computeVersions(brandKey);
+const plan = compileBase({ brief, brand, prompts, routes, versions, brandKey, memory, template });
 const dir = join(PATHS.out, id);
 mkdirSync(dir, { recursive: true });
 writeFileSync(join(dir, "prompt.json"), JSON.stringify(plan, null, 2));
 writeFileSync(join(dir, "brief.json"), JSON.stringify(brief, null, 2));
+
+// Typographic posts cost nothing to render, so produce the finished post now.
+if (template.renderer === "typographic") {
+  const ledger = openLedger();
+  try {
+    await runTypographic(
+      {
+        brandKey, brand, prompts, routes, versions, ledger,
+        scoreConfig: loadScoreConfig(),
+        runId: `create-${Date.now()}`,
+        concurrency: 1,
+      },
+      brief,
+      plan,
+      template,
+    );
+  } finally {
+    ledger.close();
+  }
+}
 
 console.log(`created ${id}`);

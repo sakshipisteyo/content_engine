@@ -22,6 +22,33 @@ The board reads `out/` and `data/ledger.sqlite`. Mock data uses placeholder imag
 lets you click through the brief list, a brief's ranked variants + scorecards, editable
 caption, approve/reject/rate, and the /report page — all with zero provider calls.
 
+## Text posts (quote cards) — real output, no keys
+
+The `quote-card` template is drawn locally (sharp), not by Higgsfield: 0 credits, no API
+keys. Pick **Quote Card** on `/create`, write the statement, optionally a credit line, and
+it renders dark, light and brand-colour versions at 4:5, 1:1 and 9:16 straight away.
+From the CLI:
+
+```
+corepack pnpm@9.15.0 exec tsx scripts/create.ts --brand banjaaran --template quote-card \
+  --hook "Good craft is slow on purpose." [--attribution "Name"] --cta "Follow for more"
+```
+
+The card shows the brand's own identity: optional `social: { display_name, handle, avatar }`
+and `font` in `brand/<key>.yaml` (defaults: brand name, handle from the name, the logo).
+It never draws a verified badge or engagement counts; quoting someone goes in the credit line.
+
+### More text templates (same renderer, 0 credits)
+
+| Template | What you write | Output |
+|---|---|---|
+| `insight-carousel` | cover title + outline: subtitle line, then `## Label \| Headline` pages with paragraph and `- bullet` lines | cover + pages + CTA page, PNG pages and a LinkedIn PDF (4:5 and 1:1) |
+| `tips-list` | title + one tip per line | one card, 4:5 / 1:1 / 9:16 |
+| `myth-vs-fact` | title + alternating `Myth: …` / `Fact: …` lines (any two labels, e.g. Before/After) | two-column card, 4:5 / 1:1 / 9:16 |
+
+The Create form shows the outline format as the placeholder. Leave the outline blank and,
+with `OPENROUTER_API_KEY` set, the copy model drafts it from the title. CLI: `--body "..."`.
+
 ## Go live (real generation)
 
 1. `cp .env.example .env` and fill in the three provider keys (set a Higgsfield spend cap first).
@@ -33,6 +60,23 @@ caption, approve/reject/rate, and the /report page — all with zero provider ca
    corepack pnpm@9.15.0 exec tsx scripts/run.ts --only banj-001 --format image
    ```
 6. Refresh the review board — real content appears in the same screens.
+
+## Security: tripwire
+
+Commit `571b629` (2026-09-20) was injected by malware on the dev machine (the "PolinRider"
+pattern): an obfuscated payload hidden after hundreds of spaces at the end of
+`apps/review/postcss.config.mjs`, and `.gitignore` entries hiding its `temp_*_push.bat`
+helpers. The payload was removed in `b3f9dca`; the commit stays in history, so never check
+out or run `571b629`.
+
+`scripts/tripwire.mjs` fails on those signs (huge or whitespace-padded lines, obfuscation in
+config files, tracked `.bat`/`.ps1`/executables, install scripts, non-npm tarballs). It runs:
+
+- on every push/PR (`.github/workflows/tripwire.yml`)
+- before every Vercel build (`vercel.json` `buildCommand`) — a tripped wire deploys nothing
+- before every local commit, once enabled per clone: `git config core.hooksPath .githooks`
+
+Run it any time: `corepack pnpm@9.15.0 tripwire`.
 
 ## Prerequisites
 

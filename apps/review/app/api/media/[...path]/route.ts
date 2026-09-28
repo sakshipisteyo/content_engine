@@ -16,6 +16,7 @@ const TYPES: Record<string, string> = {
   ".mp3": "audio/mpeg",
   ".txt": "text/plain; charset=utf-8",
   ".json": "application/json",
+  ".pdf": "application/pdf",
 };
 
 export async function GET(

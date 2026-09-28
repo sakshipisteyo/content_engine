@@ -10,6 +10,7 @@ export interface Shot {
   aspect: string;
   video_prompt?: string;
   camera?: string;
+  theme?: string;
 }
 
 export interface Copy {
@@ -40,6 +41,7 @@ export interface PromptPlan {
   estimated_credits: number;
   learned?: Learned;
   post_kind?: PostKind;
+  renderer?: "higgsfield" | "typographic";
 }
 
 export interface Brief {
@@ -54,6 +56,8 @@ export interface Brief {
   style_anchor: string;
   variants: number;
   credit_cap: number;
+  attribution?: string;
+  body?: string;
 }
 
 export interface SoftScores {

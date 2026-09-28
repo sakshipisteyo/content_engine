@@ -1,0 +1,20 @@
+id: brew-myth-001
+brand: brewcraft
+format: image
+platform: instagram
+hook: Coffee myths, busted
+angle: Myth vs Fact (text post)
+cta: Follow for more
+products:
+  - dark-roast-jar
+style_anchor: morning-ritual
+variants: 3
+credit_cap: 0
+template: myth-vs-fact
+body: |-
+  Myth: Dark roast has the most caffeine.
+  Fact: Light roasts keep slightly more — roasting burns some off.
+  Myth: Espresso is a type of bean.
+  Fact: It's a brewing method; any bean can be pulled as espresso.
+  Myth: Coffee should be stored in the freezer.
+  Fact: An airtight jar at room temperature is better for daily use.

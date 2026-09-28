@@ -1,0 +1,33 @@
+key: insight-carousel
+name: Insight Carousel (swipe post)
+description: A cover plus 3-8 swipeable pages of insight, ending in a call to action. Exports a LinkedIn PDF and Instagram pages.
+format: image
+platform: linkedin
+aspect: "4:5"
+mode: variants
+renderer: typographic
+layout: insight-carousel
+hook_label: Cover title
+hook_placeholder: "e.g. Frontier Intelligence Just Got Cheaper"
+asks_body: true
+body_label: Pages
+body_placeholder: |
+  What this week's releases mean for leaders who don't read benchmarks
+  ## Insight | The Real Story Is Price, Not Performance
+  AI cost per unit of performance keeps falling fast.
+  - Model A is ~40% cheaper to run than its predecessor
+  - Model B's API price was cut in half
+  ## Take action | What's Back on Your List?
+  Reopen every automation you shelved because the maths didn't work.
+draft_instructions: |
+  Write a LinkedIn carousel outline for the topic above. Format, exactly:
+  line 1: a one-sentence subtitle for the cover (no "#").
+  Then 3-5 pages, each starting with "## Label | Headline" where Label is one word
+  (e.g. Insight, Why, How, Example, Take action) and Headline is at most 8 words.
+  Under each page: one short paragraph line (<= 30 words) and optionally 2-3 lines
+  starting "- " (<= 14 words each). The last page is a "Take action" page.
+default_variants: 3 # one per theme: dark, light, brand colours
+default_credit_cap: 0
+uses_product_image: false
+copy_style: >
+  Tease the carousel's payoff in one line, invite people to swipe, then the CTA.

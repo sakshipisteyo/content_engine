@@ -49,6 +49,26 @@ It never draws a verified badge or engagement counts; quoting someone goes in th
 The Create form shows the outline format as the placeholder. Leave the outline blank and,
 with `OPENROUTER_API_KEY` set, the copy model drafts it from the title. CLI: `--body "..."`.
 
+## Deploy a demo to Vercel (admin login)
+
+1. In your Vercel account: **Add New → Project → Import** `sakshipisteyo/content_engine`.
+   Leave Root Directory as the repo root; `vercel.json` sets the build.
+2. **Settings → Environment Variables** (Production and Preview):
+   - `ADMIN_PASSWORD`: the admin password (required; without it every request gets 503)
+   - `AUTH_SECRET`: a long random string that signs the login cookie
+   - `ADMIN_USERNAME`: optional, default `admin`
+3. Deploy. The build runs the tripwire, bundles the engine, renders the demo posts and
+   builds the board. Sign in at `/login`.
+
+What works on the deployment: the board, the demo posts, downloads (PNG/JPG/PDF), and
+**creating text posts** (quote card, insight carousel, tips list, myth vs fact) with no
+API keys. New posts live in the function's `/tmp`: they can vanish when Vercel starts a
+fresh instance, so treat them as demo data. Photo/video templates still need provider
+keys, and the brand wizard needs a writable repo, so use those locally. Set
+`DATABASE_URL` (Neon) to keep approvals, captions and the schedule across restarts.
+
+Locally, login is off unless `ADMIN_PASSWORD` is set.
+
 ## Go live (real generation)
 
 1. `cp .env.example .env` and fill in the three provider keys (set a Higgsfield spend cap first).

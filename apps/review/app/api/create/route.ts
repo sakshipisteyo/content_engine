@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
-import { ROOT } from "../../../lib/repo";
+import { ROOT, engineArgs, DATA_DIR } from "../../../lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -33,15 +33,15 @@ export async function POST(req: Request) {
     const f = file as File;
     if (f.size > 0) {
       const ext = extname(f.name || "").toLowerCase() || ".jpg";
-      mkdirSync(join(ROOT, "uploads"), { recursive: true });
+      mkdirSync(join(DATA_DIR, "uploads"), { recursive: true });
       const rel = `uploads/${id}${ext}`;
-      writeFileSync(join(ROOT, rel), Buffer.from(await f.arrayBuffer()));
+      writeFileSync(join(DATA_DIR, rel), Buffer.from(await f.arrayBuffer()));
       productImage = rel;
     }
   }
 
   const args = [
-    "--import", "tsx", "scripts/create.ts",
+    ...engineArgs("create"),
     "--brand", brand,
     "--template", template,
     "--hook", hook,

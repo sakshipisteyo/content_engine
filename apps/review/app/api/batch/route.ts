@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { ROOT } from "../../../lib/repo";
+import { ROOT, engineArgs } from "../../../lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +14,7 @@ interface BatchJob {
 function runCreate(job: BatchJob): Promise<{ id: string } | { error: string }> {
   const id = `${job.brand.slice(0, 4)}-${job.template}-${Math.random().toString(36).slice(2, 7)}`;
   const args = [
-    "--import", "tsx", "scripts/create.ts",
+    ...engineArgs("create"),
     "--brand", job.brand,
     "--template", job.template,
     "--hook", job.hook,

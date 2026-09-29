@@ -3,7 +3,7 @@
  * page, for carousels) of one variant, and scores it deterministically (contrast + fit).
  */
 import type { Aspect, Brand, Brief, HardFail, ScoreCard, TypographicLayout } from "./schemas";
-import { brandHandle, contrastRatio, quoteThemes, renderQuoteCard, type Theme } from "./typographic";
+import { DEFAULT_FONT, brandHandle, contrastRatio, quoteThemes, renderQuoteCard, type Theme } from "./typographic";
 import {
   renderComparisonCard,
   renderInsightCarousel,
@@ -55,7 +55,7 @@ async function renderPages(
   aspect: Aspect,
   avatarPath: string | undefined,
 ): Promise<PageRender[]> {
-  const font = brand.font ?? "sans-serif";
+  const font = brand.font ?? DEFAULT_FONT;
   const displayName = brand.social?.display_name ?? brand.name;
   const handle = brandHandle(brand);
   const frame: FrameInput = { aspect, theme, font, brandName: displayName, handle, logoPath: avatarPath };

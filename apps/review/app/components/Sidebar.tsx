@@ -71,6 +71,11 @@ export function Sidebar() {
       </div>
 
       <div className="flex-1" />
+      <form action="/api/logout" method="post" className="px-2">
+        <button type="submit" className="text-[13px] text-muted hover:text-ink cursor-pointer bg-transparent border-0 p-0">
+          Sign out
+        </button>
+      </form>
       <div className="text-[11px] text-muted px-2 leading-relaxed">
         Local spike. Content and costs come from <code>out/</code> and the ledger.
       </div>

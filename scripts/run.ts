@@ -11,6 +11,7 @@ import { mkdirSync, writeFileSync, rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 import {
   PATHS,
+  DATA_ROOT,
   ConfigError,
   loadRoutes,
   loadPrompts,
@@ -59,7 +60,7 @@ function parseArgs(argv: string[]): Args {
     const arg = argv[i];
     switch (arg) {
       case "--briefs":
-        a.briefs = join(PATHS.root, argv[++i] ?? "briefs");
+        a.briefs = join(DATA_ROOT, argv[++i] ?? "briefs");
         break;
       case "--format": {
         const f = argv[++i];

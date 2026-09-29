@@ -13,14 +13,23 @@ export type AuthMode = "on" | "off" | "misconfigured";
 
 /** off = local dev without a password; misconfigured = deployed without one (fail closed). */
 export function authMode(): AuthMode {
-  if (process.env.ADMIN_PASSWORD) return "on";
+  if (envValue("ADMIN_PASSWORD")) return "on";
   return process.env.VERCEL ? "misconfigured" : "off";
+}
+
+/**
+ * Env value with stray whitespace and wrapping quotes removed: values pasted into a
+ * dashboard often carry a trailing newline or "quotes", which made a correct password fail.
+ */
+function envValue(name: string): string {
+  const v = (process.env[name] ?? "").trim();
+  return /^(["'])[\s\S]*\1$/.test(v) && v.length >= 2 ? v.slice(1, -1) : v;
 }
 
 const enc = new TextEncoder();
 
 async function hmac(data: string): Promise<string> {
-  const secret = process.env.AUTH_SECRET || process.env.ADMIN_PASSWORD || "";
+  const secret = envValue("AUTH_SECRET") || envValue("ADMIN_PASSWORD");
   const key = await crypto.subtle.importKey("raw", enc.encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const sig = await crypto.subtle.sign("HMAC", key, enc.encode(data));
   return Buffer.from(sig).toString("base64url");
@@ -36,8 +45,18 @@ async function safeEqual(a: string, b: string): Promise<boolean> {
 
 export async function checkCredentials(username: string, password: string): Promise<boolean> {
   if (authMode() !== "on") return false;
-  const user = process.env.ADMIN_USERNAME || "admin";
-  const [u, p] = await Promise.all([safeEqual(username, user), safeEqual(password, process.env.ADMIN_PASSWORD!)]);
+  const user = envValue("ADMIN_USERNAME") || "admin";
+  const pass = envValue("ADMIN_PASSWORD");
+  // Usernames are case-insensitive and trimmed (phone keyboards capitalise); passwords exact.
+  const [u, p] = await Promise.all([
+    safeEqual(username.trim().toLowerCase(), user.toLowerCase()),
+    safeEqual(password, pass),
+  ]);
+  if (!(u && p)) {
+    // Why, never what: shows in the deployment's logs without revealing the credentials.
+    const why = [!u && "username does not match", !p && `password does not match (expected ${pass.length} chars, got ${password.length})`];
+    console.warn(`login failed: ${why.filter(Boolean).join("; ")}`);
+  }
   return u && p;
 }
 

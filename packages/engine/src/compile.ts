@@ -261,8 +261,6 @@ function deriveHashtags(brand: Brand, brief: Brief): string[] {
     if (p) tags.add(slug(p.name));
   }
   tags.add(slug(brand.category));
-  tags.add("#handcrafted");
-  tags.add("#slowfashion");
   return [...tags].slice(0, 8);
 }
 

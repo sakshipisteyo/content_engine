@@ -28,9 +28,10 @@ function findRepoRoot(): string {
 export const REPO_ROOT = findRepoRoot();
 
 /**
- * Where generated state lives (briefs, uploads, out/, data/). Defaults to the repo; set
- * CONTENT_DATA_DIR to move it somewhere writable (the board uses /tmp on Vercel, whose
- * deployment files are read-only). Config (prompts, templates, brand) stays in the repo.
+ * Where generated state lives (brand/, briefs, uploads, out/, data/). Defaults to the
+ * repo; set CONTENT_DATA_DIR to move it somewhere writable (the board uses /tmp on
+ * Vercel, whose deployment files are read-only). brand/ is here because the brand
+ * wizard writes new brands. Other config (prompts, templates, routing) stays in the repo.
  */
 export const DATA_ROOT = process.env.CONTENT_DATA_DIR ? resolve(process.env.CONTENT_DATA_DIR) : REPO_ROOT;
 
@@ -39,7 +40,7 @@ export const PATHS = {
   prompts: join(REPO_ROOT, "prompts"),
   routing: join(REPO_ROOT, "routing"),
   templates: join(REPO_ROOT, "templates"),
-  brand: join(REPO_ROOT, "brand"),
+  brand: join(DATA_ROOT, "brand"),
   briefs: join(DATA_ROOT, "briefs"),
   uploads: join(DATA_ROOT, "uploads"),
   out: join(DATA_ROOT, "out"),

@@ -2,7 +2,7 @@ import "server-only";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
-import { ROOT } from "./repo";
+import { BRAND_DIR, ROOT } from "./repo";
 
 export interface BrandCatalog {
   key: string;
@@ -34,7 +34,7 @@ function yamlFiles(dir: string): string[] {
 }
 
 export function listBrandCatalog(): BrandCatalog[] {
-  const dir = join(ROOT, "brand");
+  const dir = BRAND_DIR;
   const out: BrandCatalog[] = [];
   for (const f of yamlFiles(dir)) {
     try {

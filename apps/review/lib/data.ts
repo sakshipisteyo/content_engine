@@ -2,7 +2,7 @@ import "server-only";
 import { existsSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { parse } from "yaml";
-import { OUT_DIR, ROOT } from "./repo";
+import { BRAND_DIR, OUT_DIR, ROOT } from "./repo";
 import { getStages, getDecisions, getSchedule } from "./ledger";
 import type {
   Brief,
@@ -209,7 +209,7 @@ export interface BudgetInfo {
 export async function getBudget(brandKey: string): Promise<BudgetInfo> {
   let budgetCredits: number | null = null;
   try {
-    const f = join(ROOT, "brand", `${brandKey}.yaml`);
+    const f = join(BRAND_DIR, `${brandKey}.yaml`);
     if (existsSync(f)) {
       const y = parse(readFileSync(f, "utf8")) as { monthly_credit_budget?: number };
       if (y.monthly_credit_budget) budgetCredits = y.monthly_credit_budget;

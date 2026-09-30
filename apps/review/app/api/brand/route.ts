@@ -1,7 +1,7 @@
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
-import { ROOT, engineArgs } from "../../../lib/repo";
+import { BRAND_DIR, ROOT, engineArgs } from "../../../lib/repo";
 
 export const dynamic = "force-dynamic";
 
@@ -26,9 +26,9 @@ export async function POST(req: Request) {
   if (!name) return Response.json({ error: "brand name is required" }, { status: 400 });
 
   let key = slug(name) || "brand";
-  if (existsSync(join(ROOT, "brand", `${key}.yaml`))) key = `${key}-${Math.random().toString(36).slice(2, 6)}`;
+  if (existsSync(join(BRAND_DIR, `${key}.yaml`))) key = `${key}-${Math.random().toString(36).slice(2, 6)}`;
 
-  const assetsDir = join(ROOT, "brand", key, "assets");
+  const assetsDir = join(BRAND_DIR, key, "assets");
   mkdirSync(assetsDir, { recursive: true });
 
   // Logo (optional).

@@ -14,7 +14,8 @@
     "test:watch": "vitest --root packages/engine",
     "engine": "tsx scripts/run.ts",
     "report": "tsx scripts/report.ts",
-    "review": "pnpm --filter review dev"
+    "review": "pnpm --filter review dev",
+    "seed": "tsx scripts/seed-mock.ts"
   },
   "devDependencies": {
     "@types/node": "^24.0.0",

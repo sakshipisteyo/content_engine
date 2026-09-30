@@ -1,7 +1,7 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "pnpm install",
-  "buildCommand": "node scripts/tripwire.mjs && node scripts/build-engine.mjs && node --import tsx scripts/seed-mock.ts && pnpm --filter review build",
+  "buildCommand": "pnpm --filter review build",
   "outputDirectory": "apps/review/.next",
   "framework": "nextjs"
 }

@@ -168,3 +168,69 @@ decide and note the decision here." Newest first.
   taken verbatim from SPEC section 4, clearly marked as placeholders, plus generated
   placeholder assets. **These must be replaced with the real brand assets and 20 real
   briefs before real generation.**
+
+## 2026-09-27 → 2026-10-02 — Text posts, security, demo deploy, local-first
+
+27. **Typographic renderer for text-first posts** (`typographic.ts`, `slides.ts`,
+    `layouts.ts`). Clients asked for tweet-style quote cards and LinkedIn swipe carousels.
+    These are drawn locally with sharp/Pango, not by Higgsfield: 0 credits, no keys,
+    seconds per post, and exact typography an image model can't guarantee. Template field
+    `renderer: typographic` + `layout` picks this path.
+
+28. **Native layout per aspect, not crops.** 4:5, 1:1 and 9:16 each get their own
+    composition; text auto-fits by binary search on font size. Carousels skip 9:16
+    (stories don't swipe like feed carousels).
+
+29. **Deterministic scoring for text posts.** WCAG contrast (text 4.5:1, secondary 3:1) and
+    fit; overflow is a `legibility` hard fail. No vision model needed for layout we drew.
+
+30. **Brand identity only, never impersonation.** Quote cards show the brand's own name,
+    handle and avatar; no verified badges or engagement counts. Quoting someone else goes in
+    the credit line.
+
+31. **Outline formats are plain text** (`outline.ts`): carousel `## Label | Headline` +
+    paragraphs + `- bullets`; tips one per line; comparisons alternating `Label: text`.
+    Typable in a textarea, parseable without an LLM. Optional LLM draft when blank.
+
+32. **Own minimal PDF writer** (`pdf.ts`) for LinkedIn document carousels: JPEG pages
+    embedded as-is (DCTDecode). Avoids a PDF dependency.
+
+33. **Malware tripwire** (`scripts/tripwire.mjs`) after the PolinRider injection in
+    `571b629`. Zero dependencies, read-only. Runs in CI, in the deploy build and as a
+    pre-commit hook. Signatures listed in ARCHITECTURE.md section 9.
+
+34. **History rewrite paused.** Removing `571b629`/`8e93b22` from history needs a force-push
+    of `main`; the owner paused it because a client uses `main`. Files are clean; the
+    commits stay until the owner approves.
+
+35. **Single admin login** (`lib/auth.ts`, `proxy.ts`) for demos: env-configured, HMAC
+    cookie, fails closed on Vercel without a password, off locally without one. Not
+    multi-tenant on purpose (Phase 3).
+
+36. **`DATA_ROOT` split** (`CONTENT_DATA_DIR`): config stays in the repo, generated state
+    (brand/, briefs, uploads, out/, data/) goes to a writable dir. Needed for read-only
+    hosts; locally they are the same directory. `brand/` moved under `DATA_ROOT` so the
+    brand wizard can write.
+
+37. **Bundled DejaVu Sans** loaded with `fontfile`. Serverless hosts have no system fonts
+    and Pango rendered text as a tiny sliver.
+
+38. **Engine scripts bundled with esbuild for deploys** (`build-engine.mjs`), so the board
+    can spawn them without tsx/TypeScript at run time. The prep (`vercel-prep.mjs`) runs
+    from the app's own `build` script because Vercel ignores the root `vercel.json` when
+    the project Root Directory is `apps/review`.
+
+39. **Vercel is demo-view only; local is the supported setup.** Vercel's `/tmp` is per
+    function instance and requests spread across instances, so brands/posts created on the
+    site 404 on later requests (seen 2026-10-01). A single-server rehearsal had missed
+    this. Proper hosting: persistent-disk server, or object storage + Postgres + a job
+    queue (ARCHITECTURE.md section 8).
+
+40. **Node 22.5+ required** (`engines`), because the ledger uses `node:sqlite`.
+
+41. **Hashtags are brand-derived only.** `#handcrafted #slowfashion` were hard-coded from
+    the first (fashion) brand and leaked into every brand's captions; removed.
+
+42. **Windows setup without corepack.** `corepack enable` fails with EPERM writing to
+    `C:\Program Files\nodejs`; `npm install -g pnpm@9.15.0` works without admin. PowerShell
+    may also need `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.

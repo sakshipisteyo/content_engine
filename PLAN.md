@@ -44,6 +44,14 @@ assembles the deliverable, and learns from what the business approves.
 - [~] Multi-brand: Create + engine already support multiple `brand/<key>.yaml`; a board-wide
       brand filter/switcher is the remaining nicety (full multi-tenant needs auth → Phase 3).
 
+- [x] Text-first post types rendered locally, 0 credits: quote card, insight carousel
+      (+ LinkedIn PDF), tips list, myth vs fact (2026-09-27)
+- [x] Brand wizard (`/brand/new`), Fill my week, Schedule (plan only)
+- [x] Single admin login + Vercel demo (view-only; see ARCHITECTURE.md section 8)
+- [x] Malware tripwire in CI, deploy build and pre-commit
+- [ ] Facebook + X/Twitter as platforms
+- [ ] Sample SaaS/AI brand with demo posts for client pitches
+
 ### Phase 2 — Real generation (needs Higgsfield + Anthropic + ElevenLabs keys)
 - Wire hero → public-URL upload for DoP image-to-video
 - One real call per provider (auth + response-shape check)
@@ -55,8 +63,10 @@ assembles the deliverable, and learns from what the business approves.
 - Deploy; usage metering / billing; optional publish + schedule integrations
 
 ## Constraints
-- **Local-only** during the spike — no cloud deploy or remote push without a fresh
-  go-ahead ([[content-engine-local-only]]).
+- Pushing to GitHub and the Vercel demo were approved by the owner (2026-09-28). Any other
+  hosting or a new deploy target still needs a fresh go-ahead. Local is the supported
+  setup until Phase 3 storage exists.
+- Current target clients (2026-10): SaaS companies selling AI products.
 - Higgsfield is the only pixel/video backend; model ids + costs live in
   `routing/routes.yaml` (report + stop on a rejected id, never substitute).
 - No 4K in the spike; video at 720p/1080p.

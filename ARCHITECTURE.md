@@ -1,6 +1,6 @@
 # Content Engine — Architecture
 
-Last updated 2026-10-02. Read this first if you are picking the project up. Companion docs:
+Last updated 2026-10-05. Read this first if you are picking the project up. Companion docs:
 [CLAUDE.md](CLAUDE.md) (rules for AI agents), [README.md](README.md) (how to run it),
 [SPEC.md](SPEC.md) (original handoff spec), [PLAN.md](PLAN.md) (vision and phases),
 [DECISIONS.md](DECISIONS.md) (why things are the way they are).
@@ -72,12 +72,13 @@ Two packages in a pnpm workspace (`pnpm-workspace.yaml`, `node-linker=hoisted`):
 | `packages/engine/src/outline.ts` | Parsers for the plain-text outlines (carousel, list, pairs) |
 | `packages/engine/src/pdf.ts` | Minimal JPEG -> PDF writer for LinkedIn carousels |
 | `packages/engine/src/palette.ts` | k-means palette extraction for the brand wizard |
+| `packages/engine/src/intake.ts` | Brand intake: wizard answers (`IntakeSchema`) -> validated Brand (`brandFromIntake`) |
 | `packages/engine/src/memory.ts` | Brand memory: the feedback loop from decisions into the next compile |
 | `packages/engine/src/ledger.ts` | Cost + decision ledger on `node:sqlite` |
 | `packages/engine/src/providers/` | Higgsfield (image/video), OpenRouter (Claude copy + vision), ElevenLabs (voice) |
 | `scripts/create.ts` | Create one brief from the form and run it (text posts render immediately) |
 | `scripts/run.ts` | Run briefs through the pipeline; `--dry-run` estimates credits with no calls |
-| `scripts/create-brand.ts` | Brand wizard backend: palette extraction + validated `brand/<key>.yaml` |
+| `scripts/create-brand.ts` | Brand wizard backend: reads the intake JSON, font family from uploaded fonts, palette (unless locked), writes `brand/<key>.yaml` |
 | `scripts/seed-mock.ts` | Demo data: renders real text posts, fakes photo/video posts + ledger rows. **Wipes `out/` and the ledger.** |
 | `scripts/tripwire.mjs` | Malware tripwire (section 8) |
 | `scripts/build-engine.mjs`, `scripts/vercel-prep.mjs` | Deploy-only: esbuild bundle of engine scripts, prep steps on Vercel |
@@ -148,11 +149,34 @@ Rendered locally with sharp (Pango text via `sharp({ text })`), 0 credits, secon
 - **Brief `/brief/[id]`**: ranked variants with score reasons, editable caption,
   approve / reject / rate / re-run with a plain-words note, downloads per size + PDF.
 - **Create `/create`**: pick a post type, brand, words (and product image for AI types).
-- **Add your brand `/brand/new`**: name, logo, 1–5 product photos, tone, advanced
-  (category, audience, banned words, credit budget). Palette auto-detected.
+- **Add your brand `/brand/new`**: a 4-step intake (section 6.1).
 - **Fill my week `/batch`**, **Schedule `/schedule`**, **Report `/report`** (cost,
   pass rate, human/engine agreement).
 - **Media** is served from `out/` through `/api/media/[...path]`, never copied.
+
+### 6.1 Brand intake (Add your brand)
+
+Four steps in `BrandWizard.tsx`, posted as one `intake` JSON + files to `/api/brand`,
+built into a brand by `brandFromIntake` (`packages/engine/src/intake.ts`). Every new brand
+field is optional, so brand files made before the intake still load.
+
+| Step | Asks | Stored as | Used by |
+|---|---|---|---|
+| 1 Business | name, product or service, one-line offer, products/services, website, proof points | `business_type`, `offer`, `products`, `website`, `proof_points` | copy prompts; service brands need no photos (offerings become products without images) |
+| 2 Audience & goals | audience, category, pains, goals, channels (incl. Facebook, X), posts/week | `audience`, `category`, `pains`, `goals`, `channels`, `posts_per_week` | copy prompts |
+| 3 Voice & content | tone, content pillars (suggested from type + goals), default CTA, banned words, liked examples, brand rules, disclaimer | `tone`, `pillars`, `default_cta`, `banned_words`, `examples`, `brand_rules`, `disclaimer` | copy prompts and outline drafts (`brandContext` in refine.ts); pillar chips on Create and hints in Fill my week; CTA when a post leaves it blank; disclaimer appended to every caption |
+| 4 Look | logo, photos, handle, display name, colours (detect or exact), post themes, brand font files, credit budget | `logo`, `social`, `palette` (+ `palette_locked`), `themes`, `font` + `font_files`, `monthly_credit_budget` | text-post renderer |
+
+**Enterprise brand kits:** "Use our exact colours" stores the hex values primary first and
+sets `palette_locked`; they are never re-detected and the brand theme uses the primary as
+its background. Uploaded `.ttf`/`.otf` files are saved under `brand/<key>/assets/`, the
+family name is read from the font's name table (`fontFamilyName`), and the renderer loads
+the file by path (`registerFont`), so it works on machines without the font installed.
+`themes` limits text posts to the chosen themes; a text post makes one version per theme.
+
+Not yet: editing a brand after creation (edit `brand/<key>.yaml` by hand), disclaimer
+drawn on the image (caption only), WOFF fonts, Facebook/X as render targets (they are
+`channels`, not `Platform`s).
 
 ### Admin login
 
@@ -236,7 +260,7 @@ spawning child processes inside requests. Then real auth and tenants.
 
 ## 10. Testing
 
-- `pnpm test` — vitest, engine unit tests (44 as of 2026-10-02): compile, scoring, ledger,
+- `pnpm test` — vitest, engine unit tests (55 as of 2026-10-05): compile, scoring, ledger,
   memory, palette, typographic renderer, slides/outlines/PDF.
 - `pnpm typecheck` (root) has 2 known pre-existing errors (pipeline resolution type;
   `@anthropic-ai/sdk` not installed). `apps/review` typecheck is clean.

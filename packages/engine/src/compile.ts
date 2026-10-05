@@ -24,7 +24,7 @@ import {
   PromptPlanSchema,
 } from "./schemas";
 import { PATHS, DATA_ROOT, ConfigError } from "./config";
-import { interpolate } from "./text";
+import { interpolate, withDisclaimer } from "./text";
 import type { BrandMemory } from "./memory";
 import { quoteThemes } from "./typographic";
 
@@ -175,7 +175,7 @@ export function compileBase(input: CompileInput): PromptPlan {
   const learned = typographic ? undefined : applyMemory(shots, brief, brand, input.memory);
 
   // A quote card already shows the statement; its fallback caption is just the CTA.
-  const caption = (typographic ? brief.cta : `${brief.hook} ${brief.cta}`).trim();
+  const caption = withDisclaimer((typographic ? brief.cta : `${brief.hook} ${brief.cta}`).trim(), brand);
   const hashtags = deriveHashtags(brand, brief);
   const script =
     brief.format === "video" ? `${brief.hook} ${brief.cta}`.trim() : undefined;

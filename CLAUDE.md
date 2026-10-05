@@ -37,6 +37,8 @@ Original spec: [SPEC.md](SPEC.md). Vision/phases: [PLAN.md](PLAN.md).
 - Text posts (quote card, insight carousel, tips list, myth vs fact) render locally for 0
   credits. Photo/video templates need Higgsfield/OpenRouter/ElevenLabs keys.
 - Add new decisions to DECISIONS.md (numbered, dated) and keep ARCHITECTURE.md current.
+- New brand fields must stay optional (old brand files must still load). Intake logic is
+  `packages/engine/src/intake.ts`; the wizard is `apps/review/app/components/BrandWizard.tsx`.
 
 ## Deployment status (2026-10-02)
 

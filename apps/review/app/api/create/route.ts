@@ -45,9 +45,10 @@ export async function POST(req: Request) {
     "--brand", brand,
     "--template", template,
     "--hook", hook,
-    "--cta", cta || "Learn more",
     "--id", id,
   ];
+  // Blank CTA: the engine uses the brand's default_cta, else "Learn more".
+  if (cta?.trim()) args.push("--cta", cta.trim());
   if (angle) args.push("--angle", angle);
   if (product) args.push("--products", product);
   if (anchor) args.push("--anchor", anchor);

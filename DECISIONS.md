@@ -234,3 +234,30 @@ decide and note the decision here." Newest first.
 42. **Windows setup without corepack.** `corepack enable` fails with EPERM writing to
     `C:\Program Files\nodejs`; `npm install -g pnpm@9.15.0` works without admin. PowerShell
     may also need `Set-ExecutionPolicy -Scope CurrentUser RemoteSigned`.
+
+## 2026-10-05 — Brand intake v2 (SaaS/AI clients and enterprises)
+
+43. **Four-step intake replaces the one-page wizard.** Copy was generic because the engine
+    knew only name, tone and colours. The intake adds offer, proof points, audience pains,
+    goals, channels, content pillars, default CTA, examples, brand rules and a disclaimer.
+    All new brand fields are optional so existing brand files and the demo stay valid.
+
+44. **Service brands need no photos.** Offerings are stored as products without images,
+    so briefs, compile and the Create form work unchanged. Unnamed product photos take the
+    brand name (uploads are renamed `product-N`, so file names carry no meaning).
+
+45. **Enterprise identity is exact, not inferred.** Entered colours lock the palette
+    (`palette_locked`), primary first, and the brand theme uses the primary. Brand fonts
+    are uploaded files loaded by path (the family name read from the file), because
+    serverless and fresh machines don't have them installed. Verified with no system fonts:
+    unregistered family renders as a 188x12 sliver, registered renders correctly.
+
+46. **Proof points are the only facts copy may state.** The copy prompt says so, to stop
+    invented statistics in client posts.
+
+47. **Disclaimer lives in the caption, applied at compile and after AI copy**, so the board,
+    caption.txt and AI-written captions all carry it, once. Drawing it on the image is
+    deferred.
+
+48. **`/api/brand` accepts only image and .ttf/.otf extensions** and removes the brand folder
+    if creation fails, so a failed submit leaves nothing half-made.

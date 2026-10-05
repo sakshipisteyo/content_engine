@@ -16,5 +16,6 @@ export * from "./outline";
 export * from "./slides";
 export * from "./layouts";
 export * from "./pdf";
+export * from "./intake";
 export * from "./ledger";
 export * from "./pipeline";

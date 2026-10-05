@@ -44,10 +44,9 @@ function die(msg: string): never {
 const brandKey = arg("brand") ?? die("--brand required");
 const templateKey = arg("template") ?? die("--template required");
 const hook = arg("hook") ?? die("--hook required");
-const cta = arg("cta") ?? "Learn more";
-
 const brand = loadBrand(brandKey);
 const template = loadTemplate(templateKey);
+const cta = arg("cta")?.trim() || brand.default_cta || "Learn more";
 
 const products = (arg("products") ?? Object.keys(brand.products)[0] ?? "")
   .split(",")
@@ -78,6 +77,10 @@ const inputs: JobInputs = {
 };
 
 const brief = jobFromTemplate(template, inputs);
+// Text posts: one variant per colour theme the brand uses (dark / light / brand).
+if (template.renderer === "typographic" && brand.themes?.length && !arg("variants")) {
+  brief.variants = brand.themes.length;
+}
 
 // Outline-driven text posts: draft the outline if left blank (needs a key), then check it.
 if (template.layout && BODY_LAYOUTS.includes(template.layout)) {

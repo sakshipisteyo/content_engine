@@ -18,7 +18,6 @@ function runCreate(job: BatchJob): Promise<{ id: string } | { error: string }> {
     "--brand", job.brand,
     "--template", job.template,
     "--hook", job.hook,
-    "--cta", "Learn more",
     "--id", id,
   ];
   if (job.product) args.push("--products", job.product);

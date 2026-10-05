@@ -10,7 +10,8 @@ scored posts in every size to review, approve, download and schedule.
 
 ## Status (2026-10-02)
 
-- **Works today, no API keys:** review board, brand wizard, and four text post types
+- **Works today, no API keys:** review board, 4-step brand intake (product, service and
+  enterprise brand kits with exact colours and own fonts), and four text post types
   (quote card, insight carousel with LinkedIn PDF, tips list, myth vs fact) rendered
   locally for free, approvals, schedule, report.
 - **Built, needs keys:** photo/video posts through Higgsfield + Claude (OpenRouter) +

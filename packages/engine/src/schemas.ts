@@ -151,6 +151,25 @@ const HexColor = z
   .string()
   .regex(/^#(?:[0-9a-fA-F]{6})$/, "must be a #RRGGBB hex colour");
 
+export const BusinessType = z.enum(["product", "service"]);
+export type BusinessType = z.infer<typeof BusinessType>;
+
+export const Goal = z.enum(["leads", "awareness", "launch", "authority", "community", "hiring"]);
+export type Goal = z.infer<typeof Goal>;
+
+/** Channels a brand posts on (Platform is the narrower set the renderer targets). */
+export const Channel = z.enum(["linkedin", "instagram", "facebook", "x", "youtube"]);
+export type Channel = z.infer<typeof Channel>;
+
+/** Colour themes of typographic posts (see quoteThemes in typographic.ts). */
+export const ThemeName = z.enum(["dark", "light", "brand"]);
+export type ThemeName = z.infer<typeof ThemeName>;
+
+export const PillarSchema = z
+  .object({ name: z.string().min(1), description: z.string().optional() })
+  .strict();
+export type Pillar = z.infer<typeof PillarSchema>;
+
 export const BrandSchema = z
   .object({
     name: z.string().min(1),
@@ -178,8 +197,48 @@ export const BrandSchema = z
       .optional(),
     /** Font family for typographic posts (any installed family; default sans-serif). */
     font: z.string().min(1).optional(),
+    /**
+     * The brand's own font files (relative to brand/<key>/), e.g. an enterprise typeface.
+     * `font` must be the family name inside the file (the wizard reads it from the file).
+     */
+    font_files: z
+      .object({ regular: z.string().min(1), bold: z.string().min(1).optional() })
+      .strict()
+      .optional(),
     /** Optional monthly Higgsfield credit budget, for the board's budget bar. */
     monthly_credit_budget: z.number().positive().optional(),
+
+    /* ---- Brand intake (all optional; older brand files stay valid) ---- */
+    /** Selling a product, or a service (no product photos needed). */
+    business_type: BusinessType.optional(),
+    website: z.string().min(1).optional(),
+    /** One line: what the business sells and to whom. */
+    offer: z.string().min(1).optional(),
+    /** Facts the copy may lean on: customers, numbers, awards. Never invented. */
+    proof_points: z.array(z.string().min(1)).optional(),
+    /** The audience's problems the brand solves. */
+    pains: z.array(z.string().min(1)).optional(),
+    goals: z.array(Goal).optional(),
+    /** Where the brand posts (wider than the render Platform list). */
+    channels: z.array(Channel).optional(),
+    posts_per_week: z.number().int().min(1).max(21).optional(),
+    /** Content pillars: the recurring topics the brand posts about. */
+    pillars: z.array(PillarSchema).optional(),
+    /** Call to action used when a post doesn't set one. */
+    default_cta: z.string().min(1).optional(),
+    /** Posts or lines the brand likes (style references for the copy). */
+    examples: z.array(z.string().min(1)).optional(),
+    /** Brand guidelines in words: do's, don'ts, terminology, legal rules. */
+    brand_rules: z.string().min(1).optional(),
+    /** Required line appended to every caption (e.g. legal disclaimer). */
+    disclaimer: z.string().min(1).optional(),
+    /** Which colour themes text posts use (default all three). */
+    themes: z.array(ThemeName).min(1).optional(),
+    /**
+     * true = the palette is the brand's exact colours, entered by hand, primary first
+     * (enterprise brand kits): never re-detected, and the brand theme uses the primary.
+     */
+    palette_locked: z.boolean().optional(),
   })
   .strict();
 export type Brand = z.infer<typeof BrandSchema>;

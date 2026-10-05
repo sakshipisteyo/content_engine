@@ -39,6 +39,7 @@ export async function refineCopy(
     cta: brief.cta,
     banned_words: brand.banned_words.join(", "),
     template_copy_style: copyStyle,
+    brand_context: brandContext(brand) || "none",
   };
   const text = interpolate(prompt.template, tokens);
   const raw = (await json(text, COPY_SCHEMA, {
@@ -53,6 +54,28 @@ export async function refineCopy(
     ...(brief.format === "video" && raw.script ? { script: raw.script } : {}),
   };
   return CopySchema.parse(copy);
+}
+
+/**
+ * What the brand intake adds to copy prompts: offer, proof, pains, goals, channels,
+ * pillars, rules, examples. Empty string for brands set up before the intake existed.
+ */
+export function brandContext(brand: Brand): string {
+  const list = (xs?: string[]) => (xs?.length ? xs.join("; ") : "");
+  const lines = [
+    brand.business_type && `Business type: ${brand.business_type}.`,
+    brand.offer && `What they sell: ${brand.offer}.`,
+    brand.website && `Website: ${brand.website}.`,
+    list(brand.proof_points) && `Proof points (the only facts and numbers you may state): ${list(brand.proof_points)}.`,
+    list(brand.pains) && `Audience pains: ${list(brand.pains)}.`,
+    list(brand.goals) && `Goals: ${list(brand.goals)}.`,
+    list(brand.channels) && `Posts on: ${list(brand.channels)}.`,
+    brand.pillars?.length &&
+      `Content pillars: ${brand.pillars.map((p) => (p.description ? `${p.name} (${p.description})` : p.name)).join("; ")}.`,
+    list(brand.examples) && `Examples the brand likes (match the style, never copy): ${list(brand.examples)}.`,
+    brand.brand_rules && `Brand rules (always follow): ${brand.brand_rules}`,
+  ];
+  return lines.filter(Boolean).join("\n");
 }
 
 /** True if any banned word appears (case-insensitive, word-ish) in the copy. */
@@ -86,6 +109,7 @@ export async function draftBody(
     `Brand: ${brand.name} — ${brand.category}. Audience: ${brand.audience}. Tone: ${brand.tone.join(", ")}.`,
     `Platform: ${brief.platform}. Topic / title: "${brief.hook}". Angle: ${brief.angle}.`,
     `Banned words (never use): ${brand.banned_words.join(", ") || "none"}.`,
+    brandContext(brand),
     `Only state facts you are confident are true; no invented statistics, names or quotes.`,
     template.draft_instructions ?? "",
     `Return JSON: { "body": string } — the outline text only, in exactly that format.`,

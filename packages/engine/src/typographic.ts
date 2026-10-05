@@ -27,6 +27,63 @@ function bundledFontFile(bold: boolean): string | undefined {
   return existsSync(file) ? file : undefined;
 }
 
+/** A brand's own font files (absolute paths), keyed by the family name inside them. */
+export interface FontFiles {
+  regular: string;
+  bold?: string;
+}
+const brandFonts = new Map<string, FontFiles>();
+
+/** Make a brand font usable by textImage under its family name. */
+export function registerFont(family: string, files: FontFiles): void {
+  brandFonts.set(family, files);
+}
+
+function fontFileFor(font: string, bold: boolean): string | undefined {
+  const own = brandFonts.get(font);
+  if (own) return (bold && own.bold) || own.regular;
+  return font === DEFAULT_FONT ? bundledFontFile(bold) : undefined;
+}
+
+/**
+ * Family name inside a TrueType/OpenType file (name table: typographic family, id 16,
+ * else family, id 1). Pango needs it to pick the font loaded from the file. Null if the
+ * buffer isn't a font it can read (e.g. WOFF, collections).
+ */
+export function fontFamilyName(buf: Buffer): string | null {
+  if (buf.length < 12) return null;
+  const tag = buf.readUInt32BE(0);
+  if (tag !== 0x00010000 && tag !== 0x4f54544f && tag !== 0x74727565) return null; // TTF, 'OTTO', 'true'
+  const tables = buf.readUInt16BE(4);
+  for (let i = 0; i < tables; i++) {
+    const rec = 12 + i * 16;
+    if (rec + 16 > buf.length) return null;
+    if (buf.toString("latin1", rec, rec + 4) !== "name") continue;
+    const base = buf.readUInt32BE(rec + 8);
+    const count = buf.readUInt16BE(base + 2);
+    const strings = base + buf.readUInt16BE(base + 4);
+    const found = new Map<number, string>();
+    for (let j = 0; j < count; j++) {
+      const r = base + 6 + j * 12;
+      const platform = buf.readUInt16BE(r);
+      const nameId = buf.readUInt16BE(r + 6);
+      if (nameId !== 1 && nameId !== 16) continue;
+      const len = buf.readUInt16BE(r + 8);
+      const off = strings + buf.readUInt16BE(r + 10);
+      if (off + len > buf.length) continue;
+      const raw = buf.subarray(off, off + len);
+      // Windows/Unicode platforms store UTF-16BE; Mac roman is close enough to latin1.
+      const text =
+        platform === 1
+          ? raw.toString("latin1")
+          : Buffer.from(raw).swap16().toString("utf16le");
+      if (text.trim() && (!found.has(nameId) || platform === 3)) found.set(nameId, text.trim());
+    }
+    return found.get(16) ?? found.get(1) ?? null;
+  }
+  return null;
+}
+
 /* ---------------------------------------------------------------- colours */
 
 /** WCAG relative luminance of an sRGB colour. */
@@ -75,16 +132,28 @@ function pickAccent(palette: string[], background: string, fallback: string): st
   return usable[0] ?? fallback;
 }
 
-/** The colour themes a quote card cycles through across variants. */
+/**
+ * The colour themes a text post cycles through across variants: dark, light and brand,
+ * filtered to `brand.themes` when the brand picked some.
+ */
 export function quoteThemes(brand: Brand): Theme[] {
+  const all = allThemes(brand);
+  const keep = brand.themes;
+  if (!keep?.length) return all;
+  const picked = all.filter((t) => keep.includes(t.name as (typeof keep)[number]));
+  return picked.length ? picked : all;
+}
+
+function allThemes(brand: Brand): Theme[] {
   const palette = brand.palette;
   const dark = { background: "#000000", text: "#E7E9EA", muted: "#8B9095" };
   const light = { background: "#FFFFFF", text: "#0F1419", muted: "#536471" };
 
-  // Brand theme: darkest palette colour as the ground, whichever of white/ink reads best.
-  const ground = [...palette].sort(
-    (a, b) => luminance(hexToRgb(a)) - luminance(hexToRgb(b)),
-  )[0]!;
+  // Brand theme: the exact primary colour for a locked brand kit, else the darkest palette
+  // colour; text is whichever of white/ink reads best on it.
+  const ground = brand.palette_locked
+    ? palette[0]!
+    : [...palette].sort((a, b) => luminance(hexToRgb(a)) - luminance(hexToRgb(b)))[0]!;
   const text = contrastRatio("#FFFFFF", ground) >= contrastRatio("#111111", ground) ? "#FFFFFF" : "#111111";
 
   return [
@@ -136,7 +205,7 @@ export async function textImage(markup: string, opts: TextOpts): Promise<TextIma
   const weight = opts.bold ? ' weight="bold"' : "";
   // Pango letter_spacing is in 1/1024 pt; at dpi 72 a pt is a px.
   const tracking = opts.letterSpacing ? ` letter_spacing="${Math.round(opts.letterSpacing * 1024)}"` : "";
-  const fontfile = opts.font === DEFAULT_FONT ? bundledFontFile(!!opts.bold) : undefined;
+  const fontfile = fontFileFor(opts.font, !!opts.bold);
   const { data, info } = await sharp({
     text: {
       ...(fontfile ? { fontfile } : {}),

@@ -9,6 +9,9 @@ export interface BrandCatalog {
   name: string;
   products: { key: string; name: string }[];
   anchors: { key: string; description: string }[];
+  businessType: "product" | "service";
+  defaultCta: string | null;
+  pillars: { name: string; description?: string }[];
 }
 
 export interface TemplateCatalog {
@@ -42,6 +45,9 @@ export function listBrandCatalog(): BrandCatalog[] {
         name?: string;
         products?: Record<string, { name?: string }>;
         style_anchors?: Record<string, { description?: string }>;
+        business_type?: string;
+        default_cta?: string;
+        pillars?: { name?: string; description?: string }[];
       };
       const key = f.replace(/\.ya?ml$/, "");
       out.push({
@@ -52,6 +58,11 @@ export function listBrandCatalog(): BrandCatalog[] {
           key: k,
           description: v?.description ?? "",
         })),
+        businessType: y.business_type === "service" ? "service" : "product",
+        defaultCta: y.default_cta ?? null,
+        pillars: (y.pillars ?? [])
+          .filter((p) => p?.name)
+          .map((p) => ({ name: p.name!, ...(p.description ? { description: p.description } : {}) })),
       });
     } catch {
       /* skip malformed brand file */

@@ -156,10 +156,20 @@ export function BatchForm({
         <textarea
           value={hooks}
           onChange={(e) => setHooks(e.target.value)}
-          placeholder={"New season, same roots.\nHandcrafted for the everyday.\nMade with care, worn with pride."}
+          placeholder={
+            brand?.pillars.length
+              ? brand.pillars.map((p) => `A line about ${p.name.toLowerCase()}`).join("\n")
+              : "One hook per post, e.g.\nAI won't replace your team. Teams using AI will.\n5 ways to win back an hour a day"
+          }
           rows={3}
           className="px-3 py-2 border border-line2 rounded-[10px] text-sm bg-field resize-y"
         />
+        {brand?.pillars.length ? (
+          <span className="text-xs text-muted">
+            Tip: write one hook per pillar so the week covers{" "}
+            {brand.pillars.map((p) => p.name).join(", ")}.
+          </span>
+        ) : null}
       </div>
 
       {/* Variations per combo */}

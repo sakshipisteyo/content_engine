@@ -39,9 +39,11 @@ import {
   rankCards,
 } from "./score";
 import { refineCopy, hasBannedWord } from "./refine";
+import { withDisclaimer } from "./text";
 import { assembleImage, assembleVideo, writeCaption, hasFfmpeg } from "./assemble";
 import { downloadToFile } from "./media";
 import { layoutAspects, renderTypographicVariant } from "./layouts";
+import { registerFont } from "./typographic";
 import { jpegsToPdf } from "./pdf";
 
 export interface PipelineCtx {
@@ -482,7 +484,7 @@ async function stageCopy(
       copy = await refineCopy(ctx.brand, brief, ctx.prompts.copy, ctx.routes.copy.model, copyStyle);
       banned = hasBannedWord(copy, ctx.brand.banned_words);
     }
-    plan.copy = copy;
+    plan.copy = { ...copy, caption: withDisclaimer(copy.caption, ctx.brand) };
     writeFileSync(join(briefDir(brief.id), "prompt.json"), JSON.stringify(plan, null, 2));
     record(ctx, {
       brief_id: brief.id,
@@ -582,7 +584,7 @@ async function stageAssemble(
   for (const v of variants) {
     const start = Date.now();
     const dir = variantDir(brief.id, v);
-    writeCaption(dir, plan.copy.caption, plan.copy.hashtags);
+    writeCaption(dir, withDisclaimer(plan.copy.caption, ctx.brand), plan.copy.hashtags);
     try {
       if (brief.format === "image") {
         await assembleImage(join(dir, "hero.png"), dir, CROP_ASPECTS, logoPath);
@@ -634,6 +636,13 @@ export async function runTypographic(
   const layout = template.layout!;
   const avatarRel = ctx.brand.social?.avatar ?? ctx.brand.logo;
   const avatarPath = brandAssetPath(ctx.brandKey, avatarRel);
+  // The brand's own typeface (enterprise brand kits), loaded by file like the default.
+  const ff = ctx.brand.font_files;
+  if (ff && ctx.brand.font) {
+    const regular = brandAssetPath(ctx.brandKey, ff.regular);
+    const bold = ff.bold ? brandAssetPath(ctx.brandKey, ff.bold) : undefined;
+    if (existsSync(regular)) registerFont(ctx.brand.font, { regular, bold: bold && existsSync(bold) ? bold : undefined });
+  }
   const primary = plan.shots[0]!.aspect;
   const aspects = layoutAspects(layout, primary, CROP_ASPECTS);
 
@@ -724,7 +733,7 @@ export async function runTypographic(
   }
 
   for (const v of survivors) {
-    writeCaption(variantDir(brief.id, v), plan.copy.caption, plan.copy.hashtags);
+    writeCaption(variantDir(brief.id, v), withDisclaimer(plan.copy.caption, ctx.brand), plan.copy.hashtags);
     record(ctx, { brief_id: brief.id, variant: v, stage: "assemble", status: "ok", started_at: now() });
   }
   return {

@@ -45,7 +45,7 @@ export function CreateForm({
     fd.set("brand", brandKey);
     fd.set("template", templateKey);
     fd.set("hook", hook);
-    fd.set("cta", cta || "Learn more");
+    if (cta.trim()) fd.set("cta", cta.trim());
     if (angle) fd.set("angle", angle);
     if (product) fd.set("product", product);
     if (anchor) fd.set("anchor", anchor);
@@ -98,7 +98,7 @@ export function CreateForm({
           <Select label="Brand" value={brandKey} onChange={onBrand} options={brands.map((b) => ({ v: b.key, l: b.name }))} />
           {!isText && (<>
           <Select
-            label="Product"
+            label={brand?.businessType === "service" ? "Offering" : "Product"}
             value={product}
             onChange={setProduct}
             options={(brand?.products ?? []).map((p) => ({ v: p.key, l: p.name }))}
@@ -194,16 +194,34 @@ export function CreateForm({
           <input
             value={cta}
             onChange={(e) => setCta(e.target.value)}
-            placeholder="Call to action (e.g. Shop the festive edit)"
+            placeholder={brand?.defaultCta ? `Call to action (default: ${brand.defaultCta})` : "Call to action (e.g. Book a demo)"}
             className="h-11 px-3 border border-line2 rounded-[10px] text-sm bg-field"
           />
           <input
             value={angle}
             onChange={(e) => setAngle(e.target.value)}
-            placeholder="Angle (optional, e.g. artisan pride)"
+            placeholder="Angle / pillar (optional, e.g. customer wins)"
             className="h-11 px-3 border border-line2 rounded-[10px] text-sm bg-field"
           />
         </div>
+        {brand?.pillars.length ? (
+          <div className="flex flex-wrap items-center gap-2 text-xs text-muted">
+            Your pillars:
+            {brand.pillars.map((p) => (
+              <button
+                key={p.name}
+                type="button"
+                title={p.description}
+                onClick={() => setAngle(p.name)}
+                className={`px-3 py-1 rounded-full border cursor-pointer ${
+                  angle === p.name ? "border-forest bg-forest text-white" : "border-line2 bg-panel text-ink hover:bg-active"
+                }`}
+              >
+                {p.name}
+              </button>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       {err && <div className="text-sm text-clay">{err}</div>}

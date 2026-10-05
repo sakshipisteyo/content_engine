@@ -49,7 +49,10 @@ assembles the deliverable, and learns from what the business approves.
 - [x] Brand wizard (`/brand/new`), Fill my week, Schedule (plan only)
 - [x] Single admin login + Vercel demo (view-only; see ARCHITECTURE.md section 8)
 - [x] Malware tripwire in CI, deploy build and pre-commit
-- [ ] Facebook + X/Twitter as platforms
+- [x] Brand intake v2: 4 steps, service brands, pillars, proof, rules, disclaimer;
+      enterprise brand kits (exact colours, own font, themes) (2026-10-05)
+- [ ] Edit a brand after creation (today: edit the YAML)
+- [ ] Facebook + X/Twitter as render platforms (captured as `channels` already)
 - [ ] Sample SaaS/AI brand with demo posts for client pitches
 
 ### Phase 2 — Real generation (needs Higgsfield + Anthropic + ElevenLabs keys)

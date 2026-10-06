@@ -34,3 +34,8 @@ voice:
   model: eleven_multilingual_v2     # ElevenLabs model id
   output_format: mp3_44100_128
   credits_per_run: 0                # VO billed by ElevenLabs char quota, not credits
+
+speak:
+  endpoint: /v1/speak/higgsfield    # Higgsfield "Speak v2": person image + WAV voice -> talking video
+  quality: mid                      # mid | high
+  credits_per_second: 3             # PLACEHOLDER — confirm (5 / 10 / 15 s clips)

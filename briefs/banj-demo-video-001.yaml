@@ -1,0 +1,18 @@
+# Demo video post (product demo). Draft renders locally for free from the brand's photos;
+# "Render with Higgsfield" on the post page animates them with real camera motions.
+id: banj-demo-video-001
+brand: banjaaran
+format: video
+platform: instagram
+hook: Made by hand in Kolhapur
+angle: craft
+cta: Shop the collection
+products: [kolhapuri-tan]
+style_anchor: warm-evening
+variants: 1
+credit_cap: 80
+template: product-demo
+body: |
+  Every pair, stitched by one artisan | dolly in
+  Vegetable-tanned leather that softens with you | orbit
+  Made to be worn everywhere | zoom in

@@ -71,6 +71,12 @@ export const BriefSchema = z
      * label pairs — format per template, see templates/*.yaml `body_placeholder`).
      */
     body: z.string().optional(),
+    /** Video posts: uploaded screens / photos / clips, in order (paths under DATA_ROOT). */
+    media: z.array(z.string().min(1)).optional(),
+    /** Presenter videos: photo of the person who speaks (path under DATA_ROOT). */
+    presenter: z.string().optional(),
+    /** Video posts: background music file (path under DATA_ROOT). */
+    music: z.string().optional(),
   })
   .strict();
 export type Brief = z.infer<typeof BriefSchema>;
@@ -83,8 +89,17 @@ export type TemplateMode = z.infer<typeof TemplateMode>;
  * Who draws the pixels: Higgsfield (AI photo/video) or the local typographic renderer
  * (text-first layouts drawn with sharp — no provider credits, no keys).
  */
-export const Renderer = z.enum(["higgsfield", "typographic"]);
+export const Renderer = z.enum(["higgsfield", "typographic", "montage"]);
 export type Renderer = z.infer<typeof Renderer>;
+
+/**
+ * Video kinds the montage renderer (packages/engine/src/montage.ts) builds: an edit of
+ * uploads, AI shots and branded cards. walkthrough = real screens; product-demo = product
+ * photos animated with camera motions; cinematic = AI scenes from descriptions;
+ * presenter = a person speaking the script (Higgsfield Speak).
+ */
+export const VideoKind = z.enum(["walkthrough", "product-demo", "cinematic", "presenter"]);
+export type VideoKind = z.infer<typeof VideoKind>;
 
 /** Typographic layouts the local renderer knows (packages/engine/src/typographic.ts). */
 export const TypographicLayout = z.enum(["quote-card", "insight-carousel", "tips-list", "comparison"]);
@@ -102,6 +117,10 @@ export const TemplateSchema = z
     renderer: Renderer.default("higgsfield"),
     /** Required when renderer is "typographic". */
     layout: TypographicLayout.optional(),
+    /** Required when renderer is "montage". */
+    video_kind: VideoKind.optional(),
+    /** Montage: which media the Create form asks for ("screens", "photos", "presenter"). */
+    asks_media: z.enum(["screens", "photos", "presenter"]).optional(),
     /** Create-form hints: what the hook field means for this template. */
     hook_label: z.string().optional(),
     hook_placeholder: z.string().optional(),
@@ -125,6 +144,10 @@ export const TemplateSchema = z
   .refine((t) => t.renderer !== "typographic" || t.layout !== undefined, {
     message: 'typographic templates must set "layout"',
     path: ["layout"],
+  })
+  .refine((t) => t.renderer !== "montage" || t.video_kind !== undefined, {
+    message: 'montage templates must set "video_kind"',
+    path: ["video_kind"],
   });
 export type Template = z.infer<typeof TemplateSchema>;
 
@@ -424,6 +447,15 @@ export const VoiceRouteSchema = z
   })
   .strict();
 
+/** Talking presenter (Higgsfield Speak v2): person image + WAV voice -> video. */
+export const SpeakRouteSchema = z
+  .object({
+    endpoint: z.string().min(1),
+    quality: z.enum(["mid", "high"]).default("mid"),
+    credits_per_second: z.number().nonnegative(),
+  })
+  .strict();
+
 export const RoutesSchema = z
   .object({
     image: ImageRouteSchema,
@@ -431,6 +463,8 @@ export const RoutesSchema = z
     copy: TextRouteSchema,
     score: TextRouteSchema,
     voice: VoiceRouteSchema,
+    /** Optional so older routes files load; video templates with a presenter need it. */
+    speak: SpeakRouteSchema.optional(),
   })
   .strict();
 export type Routes = z.infer<typeof RoutesSchema>;

@@ -50,7 +50,7 @@ export const LEDGER_PATH = join(DATA_DIR, "data", "ledger.sqlite");
  * by scripts/build-engine.mjs for deploys: no tsx or TypeScript sources needed at run
  * time), else runs the TypeScript source through tsx (local dev).
  */
-export function engineArgs(script: "create" | "run" | "create-brand"): string[] {
+export function engineArgs(script: "create" | "run" | "create-brand" | "render-video" | "export-video"): string[] {
   const bundle = join(ROOT, "apps", "review", ".engine", `${script}.mjs`);
   return existsSync(bundle) ? [bundle] : ["--import", "tsx", `scripts/${script}.ts`];
 }

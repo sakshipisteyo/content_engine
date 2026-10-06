@@ -1,0 +1,21 @@
+key: presenter
+name: Presenter / UGC Video (Higgsfield)
+description: A person speaks your script to camera — your presenter's photo plus an AI voice, lip-synced by Higgsfield Speak, with captions and branded cards. Great for UGC-style ads and explainers.
+format: video
+platform: instagram
+aspect: "9:16"
+mode: variants
+renderer: montage
+video_kind: presenter
+asks_media: presenter
+hook_label: Video title
+hook_placeholder: "e.g. Why our support team stopped dreading Mondays"
+asks_body: true
+body_label: Script — what the presenter says (about 2–3 words per second; 40 words ≈ 15 s)
+body_placeholder: |
+  Mondays used to mean three hundred tickets waiting. Now our AI answers the easy ones overnight, and we start the week on the hard problems. Try it free for fourteen days.
+default_variants: 1
+default_credit_cap: 120
+uses_product_image: false
+copy_style: >
+  First person and human, like a real customer or founder talking. One honest line, then the CTA.

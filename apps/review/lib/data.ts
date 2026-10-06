@@ -64,6 +64,42 @@ function carouselFiles(id: string, variant: number): Pick<VariantView, "pages" |
   return { pages, pdfs };
 }
 
+/** Finished videos for a variant: montage renders (final_*) and text-post exports (video_*). */
+function videoFiles(id: string, variant: number): VideoFile[] {
+  const dir = join(OUT_DIR, id, `v${variant}`);
+  const out: VideoFile[] = [];
+  for (const prefix of ["final", "video"]) {
+    for (const tag of ["16x9", "9x16", "1x1"]) {
+      const file = `${prefix}_${tag}.mp4`;
+      if (!existsSync(join(dir, file))) continue;
+      const poster = `${prefix}_${tag}.jpg`;
+      out.push({
+        label: tag.replace("x", ":"),
+        url: `/api/media/${id}/v${variant}/${file}`,
+        poster: existsSync(join(dir, poster)) ? `/api/media/${id}/v${variant}/${poster}` : null,
+      });
+    }
+  }
+  return out;
+}
+
+export interface VideoFile {
+  label: string;
+  url: string;
+  poster: string | null;
+}
+
+/** What montage.json says about the last video render (mode, cost, readiness). */
+export interface MontageInfo {
+  mode: "draft" | "full";
+  kind: string;
+  estimate: number;
+  spent: number;
+  seconds: number;
+  higgsfield_ready: boolean;
+  voice_ready: boolean;
+}
+
 export function loadCards(id: string): ScoreCard[] {
   const cards: ScoreCard[] = [];
   for (const v of variantDirs(id)) {
@@ -146,6 +182,7 @@ export interface VariantView {
   /** Text-post carousels: page image URLs (4:5) and PDF downloads. */
   pages: string[];
   pdfs: { label: string; url: string }[];
+  videos: VideoFile[];
 }
 
 export interface BriefDetail {
@@ -157,6 +194,7 @@ export interface BriefDetail {
   hidden: { variant: number; reasons: string[] }[];
   topVariant: number | null;
   decision: Decision | null;
+  montage: MontageInfo | null;
 }
 
 export async function getBriefDetail(id: string): Promise<BriefDetail | null> {
@@ -180,6 +218,7 @@ export async function getBriefDetail(id: string): Promise<BriefDetail | null> {
     cameraNote: plan?.shots.find((s) => s.variant === c.variant)?.camera,
     theme: plan?.shots.find((s) => s.variant === c.variant)?.theme,
     ...carouselFiles(id, c.variant),
+    videos: videoFiles(id, c.variant),
   }));
 
   const hidden = cards
@@ -198,6 +237,7 @@ export async function getBriefDetail(id: string): Promise<BriefDetail | null> {
     hidden,
     topVariant: survivors[0]?.variant ?? null,
     decision,
+    montage: readJson<MontageInfo>(join(OUT_DIR, id, "montage.json")),
   };
 }
 

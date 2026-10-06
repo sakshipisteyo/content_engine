@@ -29,6 +29,8 @@ export interface TemplateCatalog {
   asksBody: boolean;
   bodyLabel: string | null;
   bodyPlaceholder: string | null;
+  /** Video (montage) templates: which uploads the form asks for. */
+  asksMedia: "screens" | "photos" | "presenter" | null;
 }
 
 function yamlFiles(dir: string): string[] {
@@ -90,6 +92,7 @@ export function listTemplateCatalog(): TemplateCatalog[] {
         asks_body?: boolean;
         body_label?: string;
         body_placeholder?: string;
+        asks_media?: "screens" | "photos" | "presenter";
       };
       out.push({
         key: y.key ?? f.replace(/\.ya?ml$/, ""),
@@ -105,6 +108,7 @@ export function listTemplateCatalog(): TemplateCatalog[] {
         asksBody: y.asks_body === true,
         bodyLabel: y.body_label ?? null,
         bodyPlaceholder: y.body_placeholder?.trim() ?? null,
+        asksMedia: y.renderer === "montage" ? (y.asks_media ?? "photos") : null,
       });
     } catch {
       /* skip malformed template */

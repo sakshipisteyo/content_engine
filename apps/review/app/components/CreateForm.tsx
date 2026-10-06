@@ -19,12 +19,18 @@ export function CreateForm({
   const [attribution, setAttribution] = useState("");
   const [body, setBody] = useState("");
   const [file, setFile] = useState<File | null>(null);
+  const [media, setMedia] = useState<File[]>([]);
+  const [presenter, setPresenter] = useState<File | null>(null);
+  const [music, setMusic] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const brand = useMemo(() => brands.find((b) => b.key === brandKey), [brands, brandKey]);
   const template = useMemo(() => templates.find((t) => t.key === templateKey), [templates, templateKey]);
   const isText = template?.renderer === "typographic";
+  const isVideo = template?.renderer === "montage";
+  /** Text and video posts need only the brand (no product / style pickers). */
+  const simple = isText || isVideo;
   const [product, setProduct] = useState(brand?.products[0]?.key ?? "");
   const [anchor, setAnchor] = useState(brand?.anchors[0]?.key ?? "");
 
@@ -38,7 +44,12 @@ export function CreateForm({
   async function submit() {
     setErr(null);
     if (!hook.trim()) {
-      return setErr(isText ? "Write the statement for the card." : "Add a hook — a few words about the post.");
+      return setErr(isText ? "Write the statement for the card." : isVideo ? "Give the video a title." : "Add a hook — a few words about the post.");
+    }
+    if (isVideo) {
+      if (template?.asksMedia === "screens" && media.length === 0) return setErr("Upload the screenshots or screen recording to walk through.");
+      if (template?.asksMedia === "presenter" && !presenter) return setErr("Upload a photo of the presenter.");
+      if (template?.asksMedia === "presenter" && !body.trim()) return setErr("Write the script the presenter will say.");
     }
     setBusy(true);
     const fd = new FormData();
@@ -52,6 +63,11 @@ export function CreateForm({
     if (file && !isText) fd.set("product_image", file);
     if (isText && attribution.trim()) fd.set("attribution", attribution.trim());
     if (template?.asksBody && body.trim()) fd.set("body", body.trim());
+    if (isVideo) {
+      for (const m of media) fd.append("media", m);
+      if (presenter) fd.set("presenter", presenter);
+      if (music) fd.set("music", music);
+    }
     try {
       const res = await fetch("/api/create", { method: "POST", body: fd });
       const body = (await res.json()) as { id?: string; error?: string };
@@ -83,8 +99,9 @@ export function CreateForm({
               <div className="font-display text-base font-medium">{t.name}</div>
               <div className="text-xs text-muted mt-1">{t.description}</div>
               <div className="text-[11px] text-muted mt-2 uppercase tracking-wide">
-                {t.renderer === "typographic" ? "text post" : t.format} · {t.platform}
+                {t.renderer === "typographic" ? "text post" : t.renderer === "montage" ? "video" : t.format} · {t.platform}
                 {t.renderer === "typographic" && " · 0 credits"}
+                {t.renderer === "montage" && " · free draft"}
               </div>
             </button>
           ))}
@@ -93,10 +110,10 @@ export function CreateForm({
 
       {/* Brand + product + anchor */}
       <div className="flex flex-col gap-2">
-        <label className="text-sm font-semibold">2 · {isText ? "Brand" : "Brand & product"}</label>
+        <label className="text-sm font-semibold">2 · {simple ? "Brand" : "Brand & product"}</label>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Select label="Brand" value={brandKey} onChange={onBrand} options={brands.map((b) => ({ v: b.key, l: b.name }))} />
-          {!isText && (<>
+          {!simple && (<>
           <Select
             label={brand?.businessType === "service" ? "Offering" : "Product"}
             value={product}
@@ -114,7 +131,7 @@ export function CreateForm({
       </div>
 
       {/* Product image upload (photo templates only) */}
-      {!isText && (
+      {!simple && (
       <div className="flex flex-col gap-2">
         <label className="text-sm font-semibold">
           3 · Product image {needsImage ? "" : <span className="text-muted font-normal">(optional for this type)</span>}
@@ -135,9 +152,9 @@ export function CreateForm({
       {/* Words */}
       <div className="flex flex-col gap-2">
         <label className="text-sm font-semibold">
-          {isText ? "3" : "4"} · {template?.hookLabel ?? "A few words"}
+          {simple ? "3" : "4"} · {template?.hookLabel ?? "A few words"}
         </label>
-        {isText && template?.asksBody ? (
+        {(isText && template?.asksBody) || isVideo ? (
           <input
             value={hook}
             onChange={(e) => setHook(e.target.value)}
@@ -177,10 +194,38 @@ export function CreateForm({
               rows={8}
               className="px-3 py-2.5 border border-line2 rounded-[10px] text-sm bg-field resize-y font-mono"
             />
-            <div className="text-[11px] text-muted -mt-1">
-              Leave blank to have it drafted from the title (needs an OpenRouter key). The example shows the format.
-            </div>
+            {!isVideo && (
+              <div className="text-[11px] text-muted -mt-1">
+                Leave blank to have it drafted from the title (needs an OpenRouter key). The example shows the format.
+              </div>
+            )}
           </>
+        )}
+        {isVideo && (
+          <div className="flex flex-col gap-3 mt-2">
+            {template?.asksMedia === "presenter" && (
+              <FilePick
+                label={presenter ? presenter.name : "Presenter photo — a clear, front-facing portrait (JPG/PNG)"}
+                accept="image/png,image/jpeg,image/webp"
+                onPick={(f) => setPresenter(f[0] ?? null)}
+              />
+            )}
+            <FilePick
+              label={
+                media.length
+                  ? `${media.length} file${media.length > 1 ? "s" : ""}: ${media.map((m) => m.name).join(", ")}`
+                  : template?.asksMedia === "screens"
+                    ? "Screenshots and/or a screen recording (MP4/MOV/WebM), in step order"
+                    : template?.asksMedia === "presenter"
+                      ? "Optional: product shots or clips to show after the presenter"
+                      : "Product photos or clips (optional — the brand's photos are used otherwise)"
+              }
+              accept="image/*,video/mp4,video/quicktime,video/webm,.mov,.mkv"
+              multiple
+              onPick={(f) => setMedia(f.slice(0, 20))}
+            />
+            <FilePick label={music ? music.name : "Background music (optional, MP3/WAV) — use a track you have rights to"} accept="audio/*" onPick={(f) => setMusic(f[0] ?? null)} />
+          </div>
         )}
         {template?.asksAttribution && (
           <input
@@ -231,12 +276,14 @@ export function CreateForm({
           disabled={busy}
           className="h-12 px-6 rounded-[10px] bg-forest text-white font-semibold cursor-pointer hover:brightness-110 disabled:opacity-50"
         >
-          {busy ? "Creating…" : "Generate post"}
+          {busy ? (isVideo ? "Rendering video… about a minute" : "Creating…") : isVideo ? "Create video (free draft)" : "Generate post"}
         </button>
         <span className="text-xs text-muted">
           {isText
             ? "Renders now — dark, light and brand-colour versions, free."
-            : "Compiles the plan now; real pixels render once API keys are added."}
+            : isVideo
+              ? "Renders a free draft in 16:9, 9:16 and 1:1. Higgsfield shots render from the post page."
+              : "Compiles the plan now; real pixels render once API keys are added."}
         </span>
       </div>
     </div>
@@ -268,6 +315,16 @@ function Select({
           </option>
         ))}
       </select>
+    </label>
+  );
+}
+
+function FilePick({ label, accept, multiple, onPick }: { label: string; accept: string; multiple?: boolean; onPick: (f: File[]) => void }) {
+  return (
+    <label className="flex items-center gap-3 p-4 rounded-xl border border-dashed border-line2 bg-field cursor-pointer hover:bg-active">
+      <span className="px-3 py-2 rounded-lg bg-panel border border-line2 text-sm font-medium shrink-0">Browse</span>
+      <span className="text-sm text-muted break-all">{label}</span>
+      <input type="file" accept={accept} multiple={multiple} className="hidden" onChange={(e) => onPick(Array.from(e.target.files ?? []))} />
     </label>
   );
 }

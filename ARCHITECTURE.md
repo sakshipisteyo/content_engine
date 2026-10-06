@@ -1,6 +1,6 @@
 # Content Engine — Architecture
 
-Last updated 2026-10-05. Read this first if you are picking the project up. Companion docs:
+Last updated 2026-10-06. Read this first if you are picking the project up. Companion docs:
 [CLAUDE.md](CLAUDE.md) (rules for AI agents), [README.md](README.md) (how to run it),
 [SPEC.md](SPEC.md) (original handoff spec), [PLAN.md](PLAN.md) (vision and phases),
 [DECISIONS.md](DECISIONS.md) (why things are the way they are).
@@ -73,12 +73,15 @@ Two packages in a pnpm workspace (`pnpm-workspace.yaml`, `node-linker=hoisted`):
 | `packages/engine/src/pdf.ts` | Minimal JPEG -> PDF writer for LinkedIn carousels |
 | `packages/engine/src/palette.ts` | k-means palette extraction for the brand wizard |
 | `packages/engine/src/intake.ts` | Brand intake: wizard answers (`IntakeSchema`) -> validated Brand (`brandFromIntake`) |
+| `packages/engine/src/video.ts` | Local video editor on the bundled ffmpeg: segments, camera moves, brand cards and captions, fades, music/voice, 16:9 / 9:16 / 1:1 |
+| `packages/engine/src/montage.ts` | Video posts: plans the edit (`planMontage`) and renders it (`runMontage`), draft (free) or full (Higgsfield) |
 | `packages/engine/src/memory.ts` | Brand memory: the feedback loop from decisions into the next compile |
 | `packages/engine/src/ledger.ts` | Cost + decision ledger on `node:sqlite` |
 | `packages/engine/src/providers/` | Higgsfield (image/video), OpenRouter (Claude copy + vision), ElevenLabs (voice) |
 | `scripts/create.ts` | Create one brief from the form and run it (text posts render immediately) |
 | `scripts/run.ts` | Run briefs through the pipeline; `--dry-run` estimates credits with no calls |
 | `scripts/create-brand.ts` | Brand wizard backend: reads the intake JSON, font family from uploaded fonts, palette (unless locked), writes `brand/<key>.yaml` |
+| `scripts/render-video.ts`, `scripts/export-video.ts` | Re-render a video post (draft / `--full` Higgsfield); turn a text post into short videos |
 | `scripts/seed-mock.ts` | Demo data: renders real text posts, fakes photo/video posts + ledger rows. **Wipes `out/` and the ledger.** |
 | `scripts/tripwire.mjs` | Malware tripwire (section 8) |
 | `scripts/build-engine.mjs`, `scripts/vercel-prep.mjs` | Deploy-only: esbuild bundle of engine scripts, prep steps on Vercel |
@@ -106,14 +109,18 @@ Two packages in a pnpm workspace (`pnpm-workspace.yaml`, `node-linker=hoisted`):
 | `product-hero` | higgsfield | product photo + hook | AI still (needs keys) |
 | `carousel` | higgsfield | product photo + hook | AI slide set (needs keys) |
 | `founder-story` | higgsfield | hook | LinkedIn image (needs keys) |
-| `ugc-ad` | higgsfield | product photo + hook | short video + VO (needs keys + ffmpeg) |
+| `ugc-ad` | higgsfield | product photo + hook | short video + VO (needs keys) |
+| `walkthrough` | montage | screenshots and/or screen recording + steps (`Step \| detail`, or `0:05-0:12 \| Step`) | product demo video, 16:9 / 9:16 / 1:1, 0 credits |
+| `product-demo` | montage | product photos (or the brand's) + shots (`Caption \| camera move`) | cinematic product video; draft free, full = Higgsfield DoP |
+| `cinematic-brand` | montage | scenes (`What the camera sees \| on-screen text`) | brand film; full = Higgsfield Soul + DoP |
+| `presenter` | montage | presenter photo + script | talking presenter / UGC video; full = ElevenLabs voice + Higgsfield Speak |
 
 To add a text layout: add the layout name to `TypographicLayout` in `schemas.ts`, render it
 in `slides.ts`, dispatch it in `layouts.ts` (`renderPages`, `BODY_LAYOUTS`,
 `validateLayoutInput`), add a parser in `outline.ts` if it takes an outline, add a
 `templates/<name>.yaml`, a demo brief, and tests in `packages/engine/test/slides.test.ts`.
 
-## 5. The two rendering paths
+## 5. Rendering paths
 
 ### 5.1 AI path (photo/video, needs keys)
 
@@ -143,6 +150,44 @@ Rendered locally with sharp (Pango text via `sharp({ text })`), 0 credits, secon
 - **Outputs:** `out/<id>/v<n>/hero.png`, `final_4x5.jpg` etc., carousels also
   `pages_<aspect>/NN.jpg` and `carousel_<aspect>.pdf`.
 
+### 5.3 Video path (montage: real media + Higgsfield + local editor)
+
+For enterprise demos, walkthroughs, launches and UGC-style ads. `planMontage` turns the
+brief into shots; `runMontage` renders them with the local editor (`video.ts`) into
+`out/<id>/v1/final_16x9.mp4`, `final_9x16.mp4`, `final_1x1.mp4` (+ `.jpg` posters),
+`caption.txt`, `score.json`, and `out/<id>/montage.json` (mode, estimate, spent, shots).
+
+- **Every video:** branded intro card (title + offer/angle), outro card (CTA + website or
+  handle), on-brand captions (brand font, accent bar, kept clear of the bottom 20% on 9:16
+  where app UI sits), corner logo, fades, optional music; a silent AAC track otherwise.
+- **Two modes.** *Draft* (on Create, free, ~30–40 s for three sizes): AI shots are stood in
+  by camera moves on the source photo, or a labelled card for scenes with no photo, so the
+  edit and timing can be approved first. *Full* ("Render with Higgsfield" on the post page,
+  or `render-video.ts --full`, or `run.ts` when a key is set): refuses without
+  `HIGGSFIELD_API_KEY` or above the post's `credit_cap`, records every call in the ledger.
+- **Higgsfield calls** (`providers/higgsfield.ts`, SDK 0.2.6): `uploadFile` (v1 client,
+  `/files/generate-upload-url`, returns a public CDN URL — this also unblocked the old
+  UGC hero -> DoP step), `listMotions` (live camera-preset list, cached a day in
+  `data/higgsfield-motions.json`) + `pickMotion` (friendly name -> preset), `animate`
+  (DoP `/v1/image2video/dop` with optional `motions`), `presenter` (Speak v2
+  `/v1/speak/higgsfield`: image + WAV, 5/10/15 s), scenes via Soul text-to-image.
+  Costs come from `routing/routes.yaml` (`video`, `image`, `speak`; still PLACEHOLDERS).
+- **Voice:** in full mode, if `ELEVENLABS_API_KEY` and a voice (brand `voice_id` or
+  `ELEVENLABS_VOICE_ID`) exist, captions are narrated and stills stretch to fit; presenter
+  videos speak the script (MP3 -> WAV locally -> Speak), captions follow sentence by sentence.
+- **AI can't show a client's real UI**, so walkthroughs always cut real screens; Higgsfield
+  adds cinematic shots and presenters around them.
+- **Text post -> video:** "Make a video (free)" on any text post (`export-video.ts`): carousel
+  pages as a slideshow, single cards with a gentle push-in, 9:16 + 1:1 (`video_*.mp4`).
+- **ffmpeg** is bundled (`@ffmpeg-installer/ffmpeg`, binaries from the npm registry, no
+  download script; Linux runs `chmod` only). It is 4.1 (no `xfade`), so segments fade
+  through the background. `FFMPEG_PATH` overrides. The old `assembleVideo` now uses it and
+  draws captions as PNG overlays (it had a hard-coded Windows Arial path before).
+
+Not yet verified against the live API (no keys yet): the exact DoP `motions` and Speak
+`input_audio` request fields, preset names on the account, and real credit costs. The
+mocked test (`test/montage.test.ts`) checks our side of the calls.
+
 ## 6. Review board
 
 - **Board `/`**: brief cards, filter by brand (switcher in the sidebar).
@@ -152,7 +197,11 @@ Rendered locally with sharp (Pango text via `sharp({ text })`), 0 credits, secon
 - **Add your brand `/brand/new`**: a 4-step intake (section 6.1).
 - **Fill my week `/batch`**, **Schedule `/schedule`**, **Report `/report`** (cost,
   pass rate, human/engine agreement).
-- **Media** is served from `out/` through `/api/media/[...path]`, never copied.
+- **Media** is served from `out/` through `/api/media/[...path]`, never copied, with byte
+  ranges (206) so videos seek and play in Safari.
+- **Video posts:** players + MP4 downloads for each size, "Render with Higgsfield (~N
+  credits)" (disabled with the reason when no key) and "Re-render draft"; `/api/video`
+  runs `render-video.ts` / `export-video.ts`.
 
 ### 6.1 Brand intake (Add your brand)
 
@@ -260,18 +309,25 @@ spawning child processes inside requests. Then real auth and tenants.
 
 ## 10. Testing
 
-- `pnpm test` — vitest, engine unit tests (55 as of 2026-10-05): compile, scoring, ledger,
-  memory, palette, typographic renderer, slides/outlines/PDF.
+- `pnpm test` — vitest, engine unit tests (63 as of 2026-10-06): compile, scoring, ledger,
+  memory, palette, typographic renderer, slides/outlines/PDF, intake, montage planning and
+  a mocked full Higgsfield render.
 - `pnpm typecheck` (root) has 2 known pre-existing errors (pipeline resolution type;
   `@anthropic-ai/sdk` not installed). `apps/review` typecheck is clean.
 - **Before handing a change to the owner, click through it in a real browser** on a fresh
   clone (Playwright with the preinstalled Chromium works): every nav page, every seeded
   brief, the brand wizard, each text template for the new brand, approve. Lesson from
   2026-10-01: single-server rehearsals missed Vercel's multi-instance `/tmp` problem.
+- **Videos in the test browser:** Playwright's Chromium has no H.264, so MP4s won't play
+  there (`canPlayType` returns ""). Verify MP4s with ffmpeg (h264, yuv420p, `moov` before
+  `mdat`) and check the player path with a VP9 `.webm` copy; real Chrome/Edge/Safari play them.
 
 ## 11. Known gaps
 
-- Real AI generation not yet run (no keys); model ids in `routing/routes.yaml` unconfirmed.
+- Real AI generation not yet run (no keys); model ids, Higgsfield request fields for
+  motions/Speak and credit costs in `routing/routes.yaml` unconfirmed.
+- Video renders run inside the request (30 s–several minutes); a job queue is needed for
+  hosting. Video isn't supported on the Vercel demo (no ffmpeg traced, function time limits).
 - Facebook and X/Twitter not in the platform list.
 - Single admin login, no tenants, no per-client data isolation.
 - Hosted storage (section 8) not built; Vercel is view-only for demos.

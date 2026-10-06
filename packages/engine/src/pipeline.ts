@@ -4,7 +4,7 @@
  * via the ledger + existing output files, and enforces the per-brief credit cap.
  * Provider calls run at p-limit concurrency 2. Exercised at A3-A6.
  */
-import { mkdirSync, existsSync, writeFileSync, rmSync } from "node:fs";
+import { mkdirSync, existsSync, readFileSync, writeFileSync, rmSync } from "node:fs";
 import { join } from "node:path";
 import pLimit from "p-limit";
 import sharp from "sharp";
@@ -155,7 +155,7 @@ const VALID_RESOLUTIONS = [
   "1632x1088", "1120x1680", "1680x1120", "2048x2048",
 ] as const;
 
-function closestResolution(aspect: string): string {
+export function closestResolution(aspect: string): string {
   const [w, h] = aspect.split(":").map(Number);
   const target = (w ?? 1) / (h ?? 1);
   let best = VALID_RESOLUTIONS[0]!;
@@ -369,7 +369,7 @@ async function stageMotion(
         const hero = join(variantDir(brief.id, v), "hero.png");
         const clip = join(variantDir(brief.id, v), "clip.mp4");
         try {
-          const heroUrl = await uploadHeroPlaceholder(hero);
+          const heroUrl = await uploadHero(hero);
           const res = await higgs.generate(ctx.routes.video.endpoint, {
             model: ctx.routes.video.model,
             prompt: shot.video_prompt ?? shot.image_prompt,
@@ -406,15 +406,9 @@ async function stageMotion(
   return { clips, spent, capped: false };
 }
 
-/**
- * DoP needs a public image_url for the hero. Hosting local files is a post-go-ahead
- * integration detail (upload to Higgsfield assets or a temp host). Flagged in
- * blockers until wired; throws so the motion stage records a clear failure.
- */
-async function uploadHeroPlaceholder(_hero: string): Promise<string> {
-  throw new Error(
-    "hero upload not wired: DoP needs a public image_url. Wire Higgsfield asset upload before A4.",
-  );
+/** DoP needs a public image_url: upload the local hero to the Higgsfield CDN. */
+async function uploadHero(hero: string): Promise<string> {
+  return higgs.uploadFile(readFileSync(hero), "image/png");
 }
 
 /** Orchestrate one brief through every stage for its format. */
@@ -425,6 +419,12 @@ export async function runBrief(
   const template = brief.template ? loadTemplate(brief.template) : undefined;
   const plan = stageCompile(ctx, brief, template);
   if (template?.renderer === "typographic") return runTypographic(ctx, brief, plan, template);
+  if (template?.renderer === "montage") {
+    // Video posts: a real run renders with Higgsfield when a key is set, else the free draft.
+    const { runMontage, higgsfieldReady } = await import("./montage");
+    const r = await runMontage(ctx, brief, template, { text: plan.copy.caption, hashtags: plan.copy.hashtags }, higgsfieldReady() ? "full" : "draft");
+    return { brief_id: r.brief_id, status: r.status, spent_credits: r.spent_credits, survivors: r.survivors };
+  }
 
   const heroRes = await stageHero(ctx, brief, plan);
   if (heroRes.generated.length === 0) {

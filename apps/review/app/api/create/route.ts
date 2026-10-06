@@ -9,6 +9,24 @@ function slug(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 24);
 }
 
+const MEDIA_EXT = new Set([".png", ".jpg", ".jpeg", ".webp", ".gif", ".mp4", ".mov", ".m4v", ".webm", ".mkv"]);
+const AUDIO_EXT = new Set([".mp3", ".wav", ".m4a", ".aac", ".ogg"]);
+const IMAGE_EXT = new Set([".png", ".jpg", ".jpeg", ".webp"]);
+const isFile = (v: FormDataEntryValue | null): v is File =>
+  !!v && typeof v === "object" && "arrayBuffer" in v && (v as File).size > 0;
+
+/** Save an upload under uploads/<id>/<name><ext>; returns the DATA_DIR-relative path. */
+async function saveUpload(f: File, id: string, name: string, allowed: Set<string>): Promise<string> {
+  const ext = extname(f.name || "").toLowerCase();
+  if (!allowed.has(ext)) throw new Error(`${f.name}: unsupported file type`);
+  mkdirSync(join(DATA_DIR, "uploads", id), { recursive: true });
+  const rel = `uploads/${id}/${name}${ext}`;
+  writeFileSync(join(DATA_DIR, rel), Buffer.from(await f.arrayBuffer()));
+  return rel;
+}
+
+export const maxDuration = 300;
+
 export async function POST(req: Request) {
   const form = await req.formData();
   const brand = String(form.get("brand") ?? "");
@@ -53,6 +71,20 @@ export async function POST(req: Request) {
   if (product) args.push("--products", product);
   if (anchor) args.push("--anchor", anchor);
   if (productImage) args.push("--product-image", productImage);
+
+  // Video posts: screens / photos / clips (in order), presenter photo, music.
+  try {
+    const media = form.getAll("media").filter(isFile).slice(0, 20);
+    const saved: string[] = [];
+    for (let i = 0; i < media.length; i++) saved.push(await saveUpload(media[i]!, id, String(i + 1).padStart(2, "0"), MEDIA_EXT));
+    if (saved.length) args.push("--media", saved.join(","));
+    const presenter = form.get("presenter");
+    if (isFile(presenter)) args.push("--presenter", await saveUpload(presenter, id, "presenter", IMAGE_EXT));
+    const music = form.get("music");
+    if (isFile(music)) args.push("--music", await saveUpload(music, id, "music", AUDIO_EXT));
+  } catch (e) {
+    return Response.json({ error: (e as Error).message }, { status: 400 });
+  }
   if (attribution) args.push("--attribution", attribution);
   if (body) args.push("--body", body);
 
@@ -65,8 +97,9 @@ export async function POST(req: Request) {
   });
 
   if (result.code !== 0) {
+    const msg = result.err.trim().split("\n").filter((l) => l.startsWith("error:")).pop()?.replace(/^error: /, "");
     return Response.json(
-      { error: result.err.trim().split("\n").pop() || "create failed" },
+      { error: msg || result.err.trim().split("\n").pop() || "create failed" },
       { status: 500 },
     );
   }

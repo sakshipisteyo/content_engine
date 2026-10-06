@@ -261,3 +261,40 @@ decide and note the decision here." Newest first.
 
 48. **`/api/brand` accepts only image and .ttf/.otf extensions** and removes the brand folder
     if creation fails, so a failed submit leaves nothing half-made.
+
+## 2026-10-06 — Video: walkthroughs, product demos, cinematic, presenter (Higgsfield)
+
+49. **Video posts are edits, not single generations (`renderer: montage`).** Enterprise
+    clients need demos and walkthroughs; one 5 s AI clip isn't a demo. A local editor cuts
+    real screens, AI shots and branded cards into one video per size.
+
+50. **Higgsfield for what AI does well; real screens for the product.** DoP camera motions
+    animate product photos, Soul + DoP make cinematic scenes, Speak lip-syncs a presenter.
+    AI would invent a client's UI, so walkthroughs always use the uploaded screens.
+
+51. **Free draft first, credits on request.** Create renders a draft locally (AI shots stood
+    in by camera moves, labelled as such); "Render with Higgsfield" shows the credit estimate,
+    asks to confirm, refuses over the post's cap or without a key.
+
+52. **ffmpeg is bundled from npm (`@ffmpeg-installer/ffmpeg`).** The owner's Windows laptop
+    has no ffmpeg and the setup must stay one `pnpm install`. Chosen over `ffmpeg-static`
+    because its binaries come from the npm registry (no download-from-GitHub install script,
+    lockfile stays registry-only for the tripwire). Trade-off: ffmpeg 4.1, no `xfade`.
+
+53. **All video text is drawn by our renderer as PNG overlays**, never ffmpeg `drawtext`:
+    same brand font and look as the posts, and no system font dependency (the old
+    assembler had a hard-coded `C:/Windows/Fonts/arial.ttf`).
+
+54. **Higgsfield upload uses the SDK's v1 client** (`upload` / `getMotions`); the v2 client
+    used for jobs has no upload. This also replaced the "hero upload not wired" stub, so the
+    existing UGC ad path can reach DoP once keys exist.
+
+55. **Camera moves are friendly names matched to the live preset list** (`pickMotion`),
+    cached for a day; an unmatched name falls back to describing the move in the prompt.
+
+56. **Every MP4: H.264 High, yuv420p, AAC (silent if no music), faststart**, the format
+    LinkedIn, Instagram, X, YouTube and every browser accept. The media route serves byte
+    ranges so Safari plays and all browsers seek.
+
+57. **Text post -> video export** (slideshow / gentle push-in) for Reels, Shorts and LinkedIn
+    video from the free text posts, at no cost.

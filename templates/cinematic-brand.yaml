@@ -1,0 +1,25 @@
+key: cinematic-brand
+name: Cinematic Brand Film (Higgsfield video)
+description: A short brand film from scene descriptions — Higgsfield generates each scene and animates it with cinematic camera moves; your on-screen lines, colours, logo and end card.
+format: video
+platform: linkedin
+aspect: "16:9"
+mode: variants
+renderer: montage
+video_kind: cinematic
+asks_media: photos
+hook_label: Film title
+hook_placeholder: "e.g. Support that never sleeps"
+asks_body: true
+body_label: Scenes — one per line ("What the camera sees | on-screen text")
+body_placeholder: |
+  A support team's dashboard glowing in a dark office at 2am | Tickets don't wait for morning
+  Close-up of a calm agent sipping coffee as replies send themselves | Neither does Acme AI
+  Wide shot of a sunrise over a city skyline | Wake up to an empty queue
+default_variants: 1
+default_credit_cap: 120
+uses_product_image: false
+video_directive: >
+  Cinematic, anamorphic, filmic colour grade, motivated lighting, slow deliberate camera.
+copy_style: >
+  Story-led: one evocative line, what the brand stands for, then the CTA.

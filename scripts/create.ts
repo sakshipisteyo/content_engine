@@ -6,6 +6,7 @@
  *     [--variants 3] [--credit-cap 40] [--product-image uploads/x.jpg] [--id <id>] \
  *     [--attribution "Name"] [--body "outline text"]
  *     [--media uploads/x/01.png,uploads/x/02.mp4] [--presenter uploads/x/face.jpg] [--music uploads/x/m.mp3]
+ *     [--scene "what the photo shows"]  (photo text posts: Higgsfield generates it if no photo)
  * Video (montage) templates render a free local draft right away; render-video.ts --full
  * spends Higgsfield credits.
  * Typographic templates (quote-card) render right away — local, 0 credits, no keys.
@@ -84,6 +85,7 @@ const inputs: JobInputs = {
   media: arg("media")?.split(",").map((s) => s.trim()).filter(Boolean),
   presenter: arg("presenter"),
   music: arg("music"),
+  scene: arg("scene"),
 };
 
 const brief = jobFromTemplate(template, inputs);

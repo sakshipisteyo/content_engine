@@ -155,7 +155,7 @@ export async function listBriefs(brandFilter?: string): Promise<BriefSummary[]> 
     const sch = scheduled.find((s) => s.brief_id === id && s.status === "scheduled");
     out.push({
       id,
-      hook: brief?.hook ?? plan?.copy.caption ?? id,
+      hook: (brief?.hook ?? plan?.copy.caption ?? id).replace(/\*([^*\n]+)\*/g, "$1"),
       format,
       platform: plan?.platform ?? brief?.platform ?? "instagram",
       variantsReady: survivors.length,
@@ -183,6 +183,8 @@ export interface VariantView {
   pages: string[];
   pdfs: { label: string; url: string }[];
   videos: VideoFile[];
+  /** final_*.jpg files that exist for this variant (text posts). */
+  sizes: string[];
 }
 
 export interface BriefDetail {
@@ -219,6 +221,7 @@ export async function getBriefDetail(id: string): Promise<BriefDetail | null> {
     theme: plan?.shots.find((s) => s.variant === c.variant)?.theme,
     ...carouselFiles(id, c.variant),
     videos: videoFiles(id, c.variant),
+    sizes: ["final_16x9.jpg", "final_4x5.jpg", "final_1x1.jpg", "final_9x16.jpg"].filter((f) => existsSync(join(OUT_DIR, id, `v${c.variant}`, f))),
   }));
 
   const hidden = cards

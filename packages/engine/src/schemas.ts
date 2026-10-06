@@ -77,6 +77,8 @@ export const BriefSchema = z
     presenter: z.string().optional(),
     /** Video posts: background music file (path under DATA_ROOT). */
     music: z.string().optional(),
+    /** Photo posts: what the photo should show; Higgsfield generates it when no photo is uploaded. */
+    scene: z.string().optional(),
   })
   .strict();
 export type Brief = z.infer<typeof BriefSchema>;
@@ -102,7 +104,7 @@ export const VideoKind = z.enum(["walkthrough", "product-demo", "cinematic", "pr
 export type VideoKind = z.infer<typeof VideoKind>;
 
 /** Typographic layouts the local renderer knows (packages/engine/src/typographic.ts). */
-export const TypographicLayout = z.enum(["quote-card", "insight-carousel", "tips-list", "comparison"]);
+export const TypographicLayout = z.enum(["quote-card", "insight-carousel", "tips-list", "comparison", "photo-headline", "stat-card"]);
 export type TypographicLayout = z.infer<typeof TypographicLayout>;
 
 export const TemplateSchema = z
@@ -119,6 +121,8 @@ export const TemplateSchema = z
     layout: TypographicLayout.optional(),
     /** Required when renderer is "montage". */
     video_kind: VideoKind.optional(),
+    /** Photo text posts: the Create form offers a photo upload and a scene description. */
+    asks_photo: z.boolean().default(false),
     /** Montage: which media the Create form asks for ("screens", "photos", "presenter"). */
     asks_media: z.enum(["screens", "photos", "presenter"]).optional(),
     /** Create-form hints: what the hook field means for this template. */
@@ -465,6 +469,14 @@ export const RoutesSchema = z
     voice: VoiceRouteSchema,
     /** Optional so older routes files load; video templates with a presenter need it. */
     speak: SpeakRouteSchema.optional(),
+    /** AI writer (draft a post from notes, suggest ideas). Claude via the Anthropic SDK. */
+    ideate: z
+      .object({
+        model: z.string().min(1),
+        effort: z.enum(["low", "medium", "high", "xhigh", "max"]).default("medium"),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 export type Routes = z.infer<typeof RoutesSchema>;

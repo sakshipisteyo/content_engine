@@ -53,6 +53,8 @@ assembles the deliverable, and learns from what the business approves.
       enterprise brand kits (exact colours, own font, themes) (2026-10-05)
 - [x] Video: walkthroughs from real screens, product demos / cinematic films / presenter
       videos with Higgsfield (free local draft first), text post -> video (2026-10-06)
+- [x] Photo headline + stat card posts; AI writer (draft from notes, ideas) (2026-10-07)
+- [ ] First real Claude (AI writer) run with ANTHROPIC_API_KEY
 - [ ] First real Higgsfield video run with keys: confirm request fields, presets, costs
 - [ ] Edit a brand after creation (today: edit the YAML)
 - [ ] Facebook + X/Twitter as render platforms (captured as `channels` already)

@@ -1,6 +1,6 @@
 # Content Engine — Architecture
 
-Last updated 2026-10-06. Read this first if you are picking the project up. Companion docs:
+Last updated 2026-10-07. Read this first if you are picking the project up. Companion docs:
 [CLAUDE.md](CLAUDE.md) (rules for AI agents), [README.md](README.md) (how to run it),
 [SPEC.md](SPEC.md) (original handoff spec), [PLAN.md](PLAN.md) (vision and phases),
 [DECISIONS.md](DECISIONS.md) (why things are the way they are).
@@ -73,6 +73,8 @@ Two packages in a pnpm workspace (`pnpm-workspace.yaml`, `node-linker=hoisted`):
 | `packages/engine/src/pdf.ts` | Minimal JPEG -> PDF writer for LinkedIn carousels |
 | `packages/engine/src/palette.ts` | k-means palette extraction for the brand wizard |
 | `packages/engine/src/intake.ts` | Brand intake: wizard answers (`IntakeSchema`) -> validated Brand (`brandFromIntake`) |
+| `packages/engine/src/photo.ts` | Photo text posts: photo headline and stat card over a photo (or brand gradient) |
+| `packages/engine/src/ideate.ts` | AI writer: drafts a post (type + every field) from notes, suggests ideas; Claude via the Anthropic SDK |
 | `packages/engine/src/video.ts` | Local video editor on the bundled ffmpeg: segments, camera moves, brand cards and captions, fades, music/voice, 16:9 / 9:16 / 1:1 |
 | `packages/engine/src/montage.ts` | Video posts: plans the edit (`planMontage`) and renders it (`runMontage`), draft (free) or full (Higgsfield) |
 | `packages/engine/src/memory.ts` | Brand memory: the feedback loop from decisions into the next compile |
@@ -81,6 +83,7 @@ Two packages in a pnpm workspace (`pnpm-workspace.yaml`, `node-linker=hoisted`):
 | `scripts/create.ts` | Create one brief from the form and run it (text posts render immediately) |
 | `scripts/run.ts` | Run briefs through the pipeline; `--dry-run` estimates credits with no calls |
 | `scripts/create-brand.ts` | Brand wizard backend: reads the intake JSON, font family from uploaded fonts, palette (unless locked), writes `brand/<key>.yaml` |
+| `scripts/draft.ts` | AI writer CLI (also behind `/api/draft`): one draft, or `--ideas` |
 | `scripts/render-video.ts`, `scripts/export-video.ts` | Re-render a video post (draft / `--full` Higgsfield); turn a text post into short videos |
 | `scripts/seed-mock.ts` | Demo data: renders real text posts, fakes photo/video posts + ledger rows. **Wipes `out/` and the ledger.** |
 | `scripts/tripwire.mjs` | Malware tripwire (section 8) |
@@ -106,6 +109,8 @@ Two packages in a pnpm workspace (`pnpm-workspace.yaml`, `node-linker=hoisted`):
 | `insight-carousel` | typographic | title + outline (`## Label \| Headline`, paragraphs, `- bullets`) | cover + pages + CTA page, PNG pages + LinkedIn PDF (4:5, 1:1; no 9:16) |
 | `tips-list` | typographic | title + one tip per line (3–8) | one card, 3 sizes |
 | `myth-vs-fact` | typographic | title + alternating `Myth:` / `Fact:` (any two labels) | two-column card, 3 sizes |
+| `photo-headline` | typographic | headline (`*word*` = emphasis) + subline, photo or scene description | 3 treatments x 16:9 / 1:1 / 4:5 |
+| `stat-card` | typographic | headline + `number \| label` line + panel text, photo or scene | big number over the photo, white panel with chat mock, 3 treatments x 16:9 / 1:1 / 4:5 |
 | `product-hero` | higgsfield | product photo + hook | AI still (needs keys) |
 | `carousel` | higgsfield | product photo + hook | AI slide set (needs keys) |
 | `founder-story` | higgsfield | hook | LinkedIn image (needs keys) |
@@ -149,6 +154,43 @@ Rendered locally with sharp (Pango text via `sharp({ text })`), 0 credits, secon
   system fonts (text rendered as a 148x12 sliver before this).
 - **Outputs:** `out/<id>/v<n>/hero.png`, `final_4x5.jpg` etc., carousels also
   `pages_<aspect>/NN.jpg` and `carousel_<aspect>.pdf`.
+
+### 5.2.1 Photo text posts (`photo.ts`)
+
+`photo-headline` and `stat-card` are typographic layouts drawn over a photo, in the style of
+LinkedIn "headline over a photo" posts. The photo, resolved once per post in
+`resolvePhoto` (pipeline.ts): the uploaded photo -> a Higgsfield Soul image from the brief's
+`scene` description (key set, within `credit_cap`, saved as `out/<id>/scene.png` and reused
+for every theme and re-render) -> a brand photo -> none (brand gradient). The score card
+says which ("photo: your upload", "brand photo — add HIGGSFIELD_API_KEY…").
+Treatments per theme: dark = darkened photo + white type, light = white panel + ink type
+(logo moves onto the photo), brand = photo tinted in the brand colour. `*word*` in the
+headline is emphasised in the accent colour (stripped in board titles). Stat cards parse
+`number | label` from the first body line (`parseStat`, number <= 12 chars).
+
+### 5.2.2 AI writer (`ideate.ts`)
+
+"Let AI write it" on Create: rough notes (or none) -> Claude picks the post type and writes
+every field (hook with emphasis, body in that template's format, attribution, photo
+scene, CTA, pillar) plus a one-line "why". "Give me ideas" returns post ideas spread
+across pillars and formats; clicking one drafts it. The user reviews and edits, then
+generates — nothing renders or spends without that click.
+
+- **Model and API:** Claude via the official Anthropic SDK (`providers/anthropic.ts`),
+  model and effort from `routes.yaml` `ideate` (`claude-opus-5-5`, `medium`), structured
+  outputs (`output_config.format` json_schema; current models reject forced `tool_choice`),
+  server-side refusal fallback (`fallbacks: "default"`, beta
+  `server-side-fallback-2026-07-01`), refusals and truncation raise clear errors. Without
+  `ANTHROPIC_API_KEY` it falls back to OpenRouter with `copy.model`; with neither, the
+  panel says which key to add.
+- **Facts:** the prompt allows only facts from the notes and the brand's proof points; no
+  real number -> no stat post.
+- **Format check:** each draft is validated against its template (outline parsers,
+  montage planning for scripts/scenes) and retried once quoting the problem.
+- **Templates offered:** every typographic and montage template (`writableTemplates`).
+- Verified: unit tests with Claude mocked, and a browser run against a local mock of the
+  Messages API (`ANTHROPIC_BASE_URL`) confirming the request (model, json_schema, effort,
+  fallbacks, beta header, no tool_choice). Not yet run against the real API.
 
 ### 5.3 Video path (montage: real media + Higgsfield + local editor)
 
@@ -309,11 +351,12 @@ spawning child processes inside requests. Then real auth and tenants.
 
 ## 10. Testing
 
-- `pnpm test` — vitest, engine unit tests (63 as of 2026-10-06): compile, scoring, ledger,
-  memory, palette, typographic renderer, slides/outlines/PDF, intake, montage planning and
-  a mocked full Higgsfield render.
-- `pnpm typecheck` (root) has 2 known pre-existing errors (pipeline resolution type;
-  `@anthropic-ai/sdk` not installed). `apps/review` typecheck is clean.
+- `pnpm test` — vitest, engine unit tests (74 as of 2026-10-07): compile, scoring, ledger,
+  memory, palette, typographic renderer, slides/outlines/PDF, intake, montage planning,
+  a mocked full Higgsfield render, photo posts, and the AI writer (Claude mocked).
+- **AI features without a key:** point `ANTHROPIC_BASE_URL` at a local mock of
+  `POST /v1/messages` to exercise the real SDK request end to end.
+- `pnpm typecheck` (root) has 1 known pre-existing error (pipeline Soul resolution type). `apps/review` typecheck is clean.
 - **Before handing a change to the owner, click through it in a real browser** on a fresh
   clone (Playwright with the preinstalled Chromium works): every nav page, every seeded
   brief, the brand wizard, each text template for the new brand, approve. Lesson from

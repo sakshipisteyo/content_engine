@@ -29,7 +29,7 @@ Original spec: [SPEC.md](SPEC.md). Vision/phases: [PLAN.md](PLAN.md).
   Tailwind 4, `proxy.ts` for auth). The board spawns engine scripts; it does not import
   the engine package.
 - Checks before a PR: `pnpm test`, `pnpm --filter review typecheck`,
-  `node scripts/tripwire.mjs`. Root `pnpm typecheck` has 2 known pre-existing errors.
+  `node scripts/tripwire.mjs`. Root `pnpm typecheck` has 1 known pre-existing error.
 - **Test in a real browser before saying something works**: fresh clone, `pnpm seed`,
   `pnpm review`, then click every nav page, the seeded briefs, the brand wizard, each
   text template, approve. Playwright + preinstalled Chromium works in cloud sessions.
@@ -37,6 +37,9 @@ Original spec: [SPEC.md](SPEC.md). Vision/phases: [PLAN.md](PLAN.md).
 - Text posts (quote card, insight carousel, tips list, myth vs fact) render locally for 0
   credits. Photo/video templates need Higgsfield/OpenRouter/ElevenLabs keys.
 - Add new decisions to DECISIONS.md (numbered, dated) and keep ARCHITECTURE.md current.
+- AI writer: `packages/engine/src/ideate.ts`; Claude via `providers/anthropic.ts` (official
+  SDK, structured outputs, never forced `tool_choice`), model in `routes.yaml` `ideate`.
+  Tests mock the provider; for browser runs use a local mock via `ANTHROPIC_BASE_URL`.
 - Video posts: `packages/engine/src/montage.ts` (plan + render), `video.ts` (editor, bundled
   ffmpeg). Never spend Higgsfield credits in tests; mock the provider (see
   `test/montage.test.ts`). Test Chromium can't play H.264: verify MP4s with ffmpeg.

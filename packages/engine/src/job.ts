@@ -18,6 +18,7 @@ export interface JobInputs {
   media?: string[];
   presenter?: string;
   music?: string;
+  scene?: string;
 }
 
 export function jobFromTemplate(template: Template, inputs: JobInputs): Brief {
@@ -40,6 +41,7 @@ export function jobFromTemplate(template: Template, inputs: JobInputs): Brief {
     ...(inputs.media?.length ? { media: inputs.media } : {}),
     ...(inputs.presenter ? { presenter: inputs.presenter } : {}),
     ...(inputs.music ? { music: inputs.music } : {}),
+    ...(inputs.scene?.trim() ? { scene: inputs.scene.trim() } : {}),
   };
   return BriefSchema.parse(brief);
 }

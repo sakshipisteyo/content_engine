@@ -14,6 +14,7 @@ await build({
     "create-brand": "scripts/create-brand.ts",
     "render-video": "scripts/render-video.ts",
     "export-video": "scripts/export-video.ts",
+    draft: "scripts/draft.ts",
   },
   outdir: "apps/review/.engine",
   outExtension: { ".js": ".mjs" },
@@ -27,4 +28,4 @@ await build({
   banner: { js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);" },
   logLevel: "warning",
 });
-console.log("engine bundle: apps/review/.engine/{create,run,create-brand,render-video,export-video}.mjs");
+console.log("engine bundle: apps/review/.engine/{create,run,create-brand,render-video,export-video,draft}.mjs");

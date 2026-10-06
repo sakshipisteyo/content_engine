@@ -37,6 +37,9 @@ Original spec: [SPEC.md](SPEC.md). Vision/phases: [PLAN.md](PLAN.md).
 - Text posts (quote card, insight carousel, tips list, myth vs fact) render locally for 0
   credits. Photo/video templates need Higgsfield/OpenRouter/ElevenLabs keys.
 - Add new decisions to DECISIONS.md (numbered, dated) and keep ARCHITECTURE.md current.
+- Video posts: `packages/engine/src/montage.ts` (plan + render), `video.ts` (editor, bundled
+  ffmpeg). Never spend Higgsfield credits in tests; mock the provider (see
+  `test/montage.test.ts`). Test Chromium can't play H.264: verify MP4s with ffmpeg.
 - New brand fields must stay optional (old brand files must still load). Intake logic is
   `packages/engine/src/intake.ts`; the wizard is `apps/review/app/components/BrandWizard.tsx`.
 

@@ -1,0 +1,25 @@
+key: walkthrough
+name: Product Walkthrough (video)
+description: A step-by-step demo cut from your real screenshots or screen recording — branded intro and outro, step captions, music. No AI credits needed.
+format: video
+platform: linkedin
+aspect: "16:9"
+mode: variants
+renderer: montage
+video_kind: walkthrough
+asks_media: screens
+hook_label: Video title
+hook_placeholder: "e.g. Set up Acme AI in 2 minutes"
+asks_body: true
+body_label: Steps — one per screenshot, in order ("Step | detail"). For a recording, use time ranges ("0:05-0:12 | Step")
+body_placeholder: |
+  Connect your helpdesk | Zendesk, Intercom or Freshdesk
+  Pick the queues to automate
+  Review the first AI replies | approve or edit in one click
+  Go live
+default_variants: 1
+default_credit_cap: 0
+uses_product_image: false
+copy_style: >
+  One line on the problem this solves, what the viewer will see in the walkthrough, then
+  the CTA. Practical, no hype.

@@ -17,5 +17,7 @@ export * from "./slides";
 export * from "./layouts";
 export * from "./pdf";
 export * from "./intake";
+export * from "./video";
+export * from "./montage";
 export * from "./ledger";
 export * from "./pipeline";

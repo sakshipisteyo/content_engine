@@ -1,14 +1,17 @@
 /**
  * Assemble stage: turn a hero image (image posts) or a clip + VO (video posts) into
  * final, cropped, ready-to-post files plus caption.txt. sharp does image crops;
- * ffmpeg (on PATH, via execa) does video crop/caption/logo/audio mux.
+ * the bundled ffmpeg (video.ts ffmpegPath) does video crop/caption/logo/audio mux.
  * Fully exercised at A3 (image) and A4 (video).
  */
-import { writeFileSync } from "node:fs";
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { execa } from "execa";
 import sharp from "sharp";
 import type { Aspect } from "./schemas";
+import { ffmpegPath, overlayFrame } from "./video";
+import { DEFAULT_FONT } from "./typographic";
 
 /** Target pixel size per crop (width x height), 1080-wide baseline. */
 const CROP_SIZE: Record<Aspect, { w: number; h: number }> = {
@@ -22,10 +25,10 @@ function cropFileName(aspect: Aspect, ext: string): string {
   return `final_${aspect.replace(":", "x")}.${ext}`;
 }
 
-/** Is ffmpeg reachable on PATH? */
+/** Is ffmpeg available (bundled binary, FFMPEG_PATH or PATH)? */
 export async function hasFfmpeg(): Promise<boolean> {
   try {
-    await execa("ffmpeg", ["-version"]);
+    await execa(ffmpegPath(), ["-version"]);
     return true;
   } catch {
     return false;
@@ -66,17 +69,6 @@ export async function assembleImage(
   return written;
 }
 
-/** Escape text for ffmpeg drawtext. */
-function escapeDrawtext(text: string): string {
-  return text
-    .replace(/\\/g, "\\\\")
-    .replace(/:/g, "\\:")
-    .replace(/'/g, "’")
-    .replace(/%/g, "\\%");
-}
-
-const WIN_FONT = "C\\:/Windows/Fonts/arial.ttf";
-
 /**
  * Video post: from a 9:16 clip, produce final_9x16.mp4 (captions burned, logo
  * composited, VO muxed) and cropped final_1x1.mp4 / final_4x5.mp4.
@@ -93,43 +85,42 @@ export async function assembleVideo(opts: {
   const { clipPath, voPath, logoPath, caption, outDir, aspects } = opts;
   const written: string[] = [];
 
-  // A short burned caption line (first ~60 chars of the caption).
-  const line = escapeDrawtext(caption.slice(0, 60));
-  const drawtext =
-    `drawtext=fontfile=${WIN_FONT}:text='${line}':` +
-    `fontcolor=white:fontsize=42:box=1:boxcolor=black@0.45:boxborderw=16:` +
-    `x=(w-text_w)/2:y=h-text_h-80`;
+  // A short burned caption line (first ~60 chars), drawn as a PNG overlay in the default
+  // font so it renders the same on every OS (no system font needed).
+  const line = caption.slice(0, 60);
+  const work = mkdtempSync(join(tmpdir(), "assemble-"));
+  const style = {
+    theme: { name: "dark", background: "#000000", text: "#FFFFFF", muted: "#BBBBBB", accent: "#FFFFFF" },
+    font: DEFAULT_FONT,
+    brandName: "",
+  };
 
   for (const aspect of aspects) {
     const { w, h } = CROP_SIZE[aspect];
     const dest = join(outDir, cropFileName(aspect, "mp4"));
 
     // Scale to cover then crop to the target, burn caption, overlay logo.
-    let filter = `scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},${drawtext}`;
-    const inputs = ["-i", clipPath];
+    const capPath = join(work, `cap-${aspect.replace(":", "x")}.png`);
+    writeFileSync(capPath, await overlayFrame(w, h, style, line));
+    const inputs = ["-i", clipPath, "-i", capPath];
+    let filter = `[0:v]scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h}[s];[s][1:v]overlay=0:0[v]`;
     if (logoPath) {
       inputs.push("-i", logoPath);
       const logoW = Math.round(w * 0.18);
-      filter =
-        `[0:v]scale=${w}:${h}:force_original_aspect_ratio=increase,crop=${w}:${h},${drawtext}[v];` +
-        `[1:v]scale=${logoW}:-1[lg];[v][lg]overlay=W-w-40:40[vout]`;
+      filter += `;[2:v]scale=${logoW}:-1[lg];[v][lg]overlay=W-w-40:40[vout]`;
     }
     if (voPath) inputs.push("-i", voPath);
 
-    const args: string[] = ["-y", ...inputs];
-    if (logoPath) {
-      args.push("-filter_complex", filter, "-map", "[vout]");
-    } else {
-      args.push("-vf", filter, "-map", "0:v");
-    }
+    const args: string[] = ["-y", ...inputs, "-filter_complex", filter, "-map", logoPath ? "[vout]" : "[v]"];
     if (voPath) {
-      const audioIndex = logoPath ? 2 : 1;
+      const audioIndex = logoPath ? 3 : 2;
       args.push("-map", `${audioIndex}:a`, "-shortest", "-c:a", "aac");
     }
     args.push("-c:v", "libx264", "-pix_fmt", "yuv420p", "-movflags", "+faststart", dest);
 
-    await execa("ffmpeg", args);
+    await execa(ffmpegPath(), args);
     written.push(dest);
   }
+  rmSync(work, { recursive: true, force: true });
   return written;
 }

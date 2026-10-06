@@ -5,6 +5,9 @@
  *     [--products a,b] [--anchor warm-evening] [--angle "..."] [--platform instagram] \
  *     [--variants 3] [--credit-cap 40] [--product-image uploads/x.jpg] [--id <id>] \
  *     [--attribution "Name"] [--body "outline text"]
+ *     [--media uploads/x/01.png,uploads/x/02.mp4] [--presenter uploads/x/face.jpg] [--music uploads/x/m.mp3]
+ * Video (montage) templates render a free local draft right away; render-video.ts --full
+ * spends Higgsfield credits.
  * Typographic templates (quote-card) render right away — local, 0 credits, no keys.
  * Prints: created <id>
  */
@@ -13,6 +16,7 @@ import { join } from "node:path";
 import { stringify as yamlStringify } from "yaml";
 import {
   PATHS,
+  loadEnv,
   loadTemplate,
   loadBrand,
   loadPrompts,
@@ -20,6 +24,8 @@ import {
   loadScoreConfig,
   computeVersions,
   runTypographic,
+  runMontage,
+  MontageError,
   validateLayoutInput,
   draftBody,
   OutlineError,
@@ -41,6 +47,7 @@ function die(msg: string): never {
   process.exit(1);
 }
 
+loadEnv();
 const brandKey = arg("brand") ?? die("--brand required");
 const templateKey = arg("template") ?? die("--template required");
 const hook = arg("hook") ?? die("--hook required");
@@ -74,6 +81,9 @@ const inputs: JobInputs = {
   product_image: arg("product-image"),
   attribution: arg("attribution"),
   body: arg("body"),
+  media: arg("media")?.split(",").map((s) => s.trim()).filter(Boolean),
+  presenter: arg("presenter"),
+  music: arg("music"),
 };
 
 const brief = jobFromTemplate(template, inputs);
@@ -129,6 +139,24 @@ if (template.renderer === "typographic") {
       plan,
       template,
     );
+  } finally {
+    ledger.close();
+  }
+}
+
+// Video posts: a free local draft of the edit (AI shots stood in by camera moves).
+if (template.renderer === "montage") {
+  const ledger = openLedger();
+  try {
+    await runMontage(
+      { brandKey, brand, routes, ledger, runId: `create-${Date.now()}` },
+      brief,
+      template,
+      { text: plan.copy.caption, hashtags: plan.copy.hashtags },
+      "draft",
+    );
+  } catch (e) {
+    die(e instanceof MontageError ? e.message : `video render failed: ${(e as Error).message}`);
   } finally {
     ledger.close();
   }

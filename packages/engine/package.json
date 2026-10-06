@@ -12,6 +12,7 @@
   },
   "dependencies": {
     "@elevenlabs/elevenlabs-js": "2.68.0",
+    "@ffmpeg-installer/ffmpeg": "1.1.0",
     "@higgsfield/client": "0.2.6",
     "dotenv": "^16.4.5",
     "execa": "10.0.1",

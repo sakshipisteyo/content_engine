@@ -1,0 +1,26 @@
+key: product-demo
+name: Product Demo (Higgsfield video)
+description: Your product photos turned into cinematic shots with Higgsfield camera motions (dolly, orbit, zoom), captions and a branded end card. Free draft first, then render with Higgsfield.
+format: video
+platform: instagram
+aspect: "9:16"
+mode: variants
+renderer: montage
+video_kind: product-demo
+asks_media: photos
+hook_label: Video title
+hook_placeholder: "e.g. Meet Support Copilot"
+asks_body: true
+body_label: Shots — one per line ("Caption | camera move"). Moves — dolly in, orbit, zoom in, pan right, crane up
+body_placeholder: |
+  Every ticket, answered in seconds | dolly in
+  Learns your tone from past replies | orbit
+  Hands off to a human when it should | zoom in
+default_variants: 1
+default_credit_cap: 80
+uses_product_image: true
+video_directive: >
+  Premium commercial look, smooth stabilised camera, soft studio light, shallow depth of
+  field, the product stays the clear hero.
+copy_style: >
+  Punchy launch tone: one line on what it does, one concrete benefit, then the CTA.

@@ -12,6 +12,8 @@ await build({
     create: "scripts/create.ts",
     run: "scripts/run.ts",
     "create-brand": "scripts/create-brand.ts",
+    "render-video": "scripts/render-video.ts",
+    "export-video": "scripts/export-video.ts",
   },
   outdir: "apps/review/.engine",
   outExtension: { ".js": ".mjs" },
@@ -19,9 +21,10 @@ await build({
   platform: "node",
   format: "esm",
   target: "node20",
-  external: ["sharp"],
+  // sharp and the bundled ffmpeg locate native binaries next to their own package files.
+  external: ["sharp", "@ffmpeg-installer/ffmpeg"],
   // Some bundled CommonJS deps call require(); give the ESM output a real one.
   banner: { js: "import { createRequire as __cr } from 'node:module'; const require = __cr(import.meta.url);" },
   logLevel: "warning",
 });
-console.log("engine bundle: apps/review/.engine/{create,run,create-brand}.mjs");
+console.log("engine bundle: apps/review/.engine/{create,run,create-brand,render-video,export-video}.mjs");

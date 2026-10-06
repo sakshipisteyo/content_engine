@@ -14,6 +14,11 @@ scored posts in every size to review, approve, download and schedule.
   enterprise brand kits with exact colours and own fonts), and four text post types
   (quote card, insight carousel with LinkedIn PDF, tips list, myth vs fact) rendered
   locally for free, approvals, schedule, report.
+- **Video (works today, free drafts):** product walkthroughs from your screenshots or
+  screen recordings, product demos, cinematic brand films and presenter/UGC videos in
+  16:9, 9:16 and 1:1, plus "Make a video" on any text post. ffmpeg is bundled, nothing to
+  install. **Render with Higgsfield** turns the draft's stand-in shots into real AI shots
+  (needs `HIGGSFIELD_API_KEY`; presenter videos also `ELEVENLABS_API_KEY`).
 - **Built, needs keys:** photo/video posts through Higgsfield + Claude (OpenRouter) +
   ElevenLabs. Not yet run for real.
 - **Run it locally.** The Vercel deployment is for viewing demo posts only (see

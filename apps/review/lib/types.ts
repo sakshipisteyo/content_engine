@@ -41,7 +41,7 @@ export interface PromptPlan {
   estimated_credits: number;
   learned?: Learned;
   post_kind?: PostKind;
-  renderer?: "higgsfield" | "typographic";
+  renderer?: "higgsfield" | "typographic" | "montage";
 }
 
 export interface Brief {

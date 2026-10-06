@@ -114,6 +114,7 @@ function referenceImages(input: CompileInput): string[] {
 /** Estimated Higgsfield credits (SPEC: printed by dry-run; from routes.yaml). */
 export function estimateCredits(brief: Brief, routes: Routes, template?: Template): number {
   if (template?.renderer === "typographic") return 0; // drawn locally, no provider
+  if (template?.renderer === "montage") return 0; // draft is local; the full estimate comes from planMontage
   const heroes = brief.variants * routes.image.credits_per_image;
   if (brief.format === "image") return heroes;
   const clips = Math.min(2, brief.variants); // motion runs on the top 2 heroes
@@ -198,6 +199,7 @@ export function compileBase(input: CompileInput): PromptPlan {
     versions: input.versions,
     post_kind: template?.mode ?? "variants",
     ...(typographic ? { renderer: "typographic" as const } : {}),
+    ...(template?.renderer === "montage" ? { renderer: "montage" as const } : {}),
     ...(learned ? { learned } : {}),
   };
 

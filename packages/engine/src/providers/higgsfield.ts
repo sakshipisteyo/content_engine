@@ -4,6 +4,7 @@
  * the SDK's built-in polling checks `request_id` but the API returns `id`.
  */
 import { higgsfield, config as hfConfig } from "@higgsfield/client/v2";
+import { HiggsfieldClient } from "@higgsfield/client";
 import { requireEnv } from "../config";
 
 let configured = false;
@@ -111,4 +112,87 @@ export async function generate(
     );
   }
   return { urls, status };
+}
+
+/* ------------------------------------------------------------- video helpers */
+// Upload and the motion list live on the SDK's v1 client (the v2 client has no upload).
+
+let v1: HiggsfieldClient | null = null;
+function v1Client(): HiggsfieldClient {
+  if (v1) return v1;
+  ensureConfigured();
+  const [apiKey, apiSecret] = credentials.split(":");
+  v1 = new HiggsfieldClient({ apiKey, apiSecret });
+  return v1;
+}
+
+/** Upload bytes to the Higgsfield CDN; returns the public URL DoP / Speak can read. */
+export async function uploadFile(data: Buffer, contentType: string): Promise<string> {
+  return v1Client().upload(data, contentType);
+}
+
+export interface MotionPreset {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+/** Camera-motion presets available to DoP on this account (live list). */
+export async function listMotions(): Promise<MotionPreset[]> {
+  const list = await v1Client().getMotions();
+  return list.map((m) => ({ id: m.id, name: m.name, ...(m.description ? { description: m.description } : {}) }));
+}
+
+const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]+/g, " ").trim();
+
+/**
+ * Pick the preset whose name best matches a friendly name ("dolly in", "orbit", "crash
+ * zoom"): exact, then contains, then all words present. Undefined = describe the move in
+ * the prompt instead.
+ */
+export function pickMotion(motions: MotionPreset[], wanted: string): MotionPreset | undefined {
+  const w = norm(wanted);
+  if (!w) return undefined;
+  return (
+    motions.find((m) => norm(m.name) === w) ??
+    motions.find((m) => norm(m.name).includes(w)) ??
+    motions.find((m) => w.split(" ").every((part) => norm(m.name).includes(part)))
+  );
+}
+
+/** Image-to-video (DoP): animate a public image with a prompt and optional motion preset. */
+export async function animate(opts: {
+  endpoint: string;
+  model: string;
+  imageUrl: string;
+  prompt: string;
+  motionId?: string;
+  strength?: number;
+}): Promise<string> {
+  const res = await generate(opts.endpoint, {
+    model: opts.model,
+    prompt: opts.prompt,
+    input_images: [{ type: "image_url", image_url: opts.imageUrl }],
+    ...(opts.motionId ? { motions: [{ id: opts.motionId, strength: opts.strength ?? 0.8 }] } : {}),
+  });
+  return res.urls[0]!;
+}
+
+/** Talking presenter (Speak v2): a person image + a WAV voice track -> lip-synced video. */
+export async function presenter(opts: {
+  endpoint: string;
+  imageUrl: string;
+  audioUrl: string;
+  prompt: string;
+  quality: "mid" | "high";
+  duration: 5 | 10 | 15;
+}): Promise<string> {
+  const res = await generate(opts.endpoint, {
+    input_image: { type: "image_url", image_url: opts.imageUrl },
+    input_audio: { type: "audio_url", audio_url: opts.audioUrl },
+    prompt: opts.prompt,
+    quality: opts.quality,
+    duration: opts.duration,
+  });
+  return res.urls[0]!;
 }

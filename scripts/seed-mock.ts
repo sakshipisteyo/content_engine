@@ -17,6 +17,7 @@ import {
   loadTemplate,
   loadScoreConfig,
   runTypographic,
+  runMontage,
   computeVersions,
   compileBase,
   brandAssetPath,
@@ -101,6 +102,26 @@ async function main() {
       writeFileSync(join(PATHS.out, brief.id, "brief.json"), JSON.stringify(brief, null, 2));
       const res = await runTypographic(ctx, brief, plan, template);
       console.log(`seeded ${brief.id} (text post, ${res.survivors} survivors)`);
+      continue;
+    }
+    // Video posts: the free local draft (no provider calls).
+    if (template?.renderer === "montage") {
+      const plan = compileBase({ brief, brand, prompts, routes, versions, brandKey: brief.brand, template });
+      mkdirSync(join(PATHS.out, brief.id), { recursive: true });
+      writeFileSync(join(PATHS.out, brief.id, "prompt.json"), JSON.stringify(plan, null, 2));
+      writeFileSync(join(PATHS.out, brief.id, "brief.json"), JSON.stringify(brief, null, 2));
+      try {
+        const res = await runMontage(
+          { brandKey: brief.brand, brand, routes, ledger, runId },
+          brief,
+          template,
+          { text: plan.copy.caption, hashtags: plan.copy.hashtags },
+          "draft",
+        );
+        console.log(`seeded ${brief.id} (video draft, ${res.seconds.toFixed(0)} s)`);
+      } catch (e) {
+        console.error(`skipped ${brief.id}: ${(e as Error).message}`);
+      }
       continue;
     }
     const plan = compileBase({ brief, brand, prompts, routes, versions, brandKey: brief.brand });

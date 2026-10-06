@@ -51,6 +51,9 @@ assembles the deliverable, and learns from what the business approves.
 - [x] Malware tripwire in CI, deploy build and pre-commit
 - [x] Brand intake v2: 4 steps, service brands, pillars, proof, rules, disclaimer;
       enterprise brand kits (exact colours, own font, themes) (2026-10-05)
+- [x] Video: walkthroughs from real screens, product demos / cinematic films / presenter
+      videos with Higgsfield (free local draft first), text post -> video (2026-10-06)
+- [ ] First real Higgsfield video run with keys: confirm request fields, presets, costs
 - [ ] Edit a brand after creation (today: edit the YAML)
 - [ ] Facebook + X/Twitter as render platforms (captured as `channels` already)
 - [ ] Sample SaaS/AI brand with demo posts for client pitches

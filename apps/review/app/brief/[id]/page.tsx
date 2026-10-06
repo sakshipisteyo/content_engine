@@ -2,6 +2,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { getBriefDetail, type VariantView } from "../../../lib/data";
 import { StatusPill, Pill, Preview, ScoreBars } from "../../components/ui";
+import { VideoButton } from "../../components/VideoActions";
+import type { MontageInfo } from "../../../lib/data";
 import { CaptionBox } from "../../components/CaptionBox";
 import { DecisionBar } from "../../components/DecisionBar";
 
@@ -28,6 +30,7 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
   const hook = d.brief?.hook ?? d.plan?.copy.caption ?? id;
   const isSlides = d.plan?.post_kind === "slides";
   const isText = d.plan?.renderer === "typographic";
+  const isMontage = d.plan?.renderer === "montage";
   const hasMedia = d.survivors.some((v) => v.media !== null);
 
   return (
@@ -52,7 +55,7 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
         </div>
         <div className="flex items-center gap-2">
           {isSlides && <Pill solid>Carousel</Pill>}
-          <Pill>{format === "video" ? "Reel · 9:16" : `Image · ${top?.aspect ?? "4:5"}`}</Pill>
+          <Pill>{isMontage ? "Video · 16:9 · 9:16 · 1:1" : format === "video" ? "Reel · 9:16" : `Image · ${top?.aspect ?? "4:5"}`}</Pill>
           <Pill>{PLATFORM_LABEL[d.plan?.platform ?? "instagram"] ?? d.plan?.platform}</Pill>
           <StatusPill status={d.status} />
         </div>
@@ -76,6 +79,8 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
                 </div>
               </div>
             </div>
+          ) : isMontage && top ? (
+            <VideoPost id={id} variant={top} montage={d.montage} />
           ) : isText ? (
             <TextPostVariants id={id} survivors={d.survivors} hidden={d.hidden} />
           ) : isSlides ? (
@@ -173,7 +178,13 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
             </div>
             <ScoreBars
               soft={soft}
-              emptyNote={isText ? "Text posts are checked for contrast and fit (below); no vision scoring." : undefined}
+              emptyNote={
+                isText
+                  ? "Text posts are checked for contrast and fit (below); no vision scoring."
+                  : isMontage
+                    ? "Videos are checked for length and platform fit (below); no vision scoring."
+                    : undefined
+              }
             />
             {top?.card?.reasons && top.card.reasons.length > 0 && (
               <ul className="text-xs text-muted list-disc pl-4 flex flex-col gap-0.5">
@@ -302,6 +313,23 @@ function TextPostVariants({
                 ))}
               </div>
             )}
+            {v.videos.length > 0 && (
+              <div className="flex gap-2">
+                {v.videos.map((vid) => (
+                  <div key={vid.url} className="flex flex-col gap-1">
+                    <video src={vid.url} poster={vid.poster ?? undefined} controls playsInline preload="none" className="w-[140px] rounded-[10px] border border-line2 bg-ink" />
+                    <a href={vid.url} download className="text-[12px] font-semibold text-forest hover:brightness-110">↓ video {vid.label}</a>
+                  </div>
+                ))}
+              </div>
+            )}
+            <VideoButton
+              briefId={id}
+              action="export"
+              variant={v.variant}
+              label={v.videos.length ? "Re-make video" : "Make a video (free)"}
+              busyLabel="Making video… ~30 s"
+            />
             <div className="flex flex-wrap gap-x-3 gap-y-1 text-[12px] font-semibold">
               {v.pdfs.map((p) => (
                 <a key={p.url} href={p.url} download className="text-forest hover:brightness-110">
@@ -325,6 +353,58 @@ function TextPostVariants({
       {hidden.length > 0 && (
         <div className="text-xs text-muted leading-relaxed">
           {hidden.length} hidden: {hidden.map((h) => `#${h.variant} (${h.reasons.join(", ")})`).join("; ")}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/** Video posts (montage): every size playable and downloadable, plus render actions. */
+function VideoPost({ id, variant, montage }: { id: string; variant: VariantView; montage: MontageInfo | null }) {
+  const draft = montage?.mode !== "full";
+  const needsAi = (montage?.estimate ?? 0) > 0;
+  return (
+    <div className="flex flex-col gap-4 w-full">
+      <div className="text-xs text-muted font-semibold tracking-wide">
+        VIDEO · {montage ? `${montage.seconds.toFixed(0)} S · ` : ""}
+        {draft ? (needsAi ? "DRAFT (FREE) — AI SHOTS SHOWN AS CAMERA MOVES" : "EDITED FROM YOUR UPLOADS · 0 CREDITS") : `RENDERED WITH HIGGSFIELD · ${montage?.spent ?? 0} CREDITS`}
+      </div>
+      <div className="flex gap-5 flex-wrap items-end">
+        {variant.videos.map((vid) => (
+          <div key={vid.url} className="flex flex-col gap-2">
+            <video
+              src={vid.url}
+              poster={vid.poster ?? undefined}
+              controls
+              playsInline
+              preload="metadata"
+              className={`${vid.label === "16:9" ? "w-[460px]" : vid.label === "9:16" ? "w-[200px]" : "w-[260px]"} rounded-[14px] border border-line2 bg-ink`}
+            />
+            <a href={vid.url} download className="text-[12px] font-semibold text-clay hover:text-clay-dark">
+              ↓ {vid.label} MP4
+            </a>
+          </div>
+        ))}
+      </div>
+      <div className="flex flex-wrap gap-3 items-start">
+        {needsAi && (
+          <VideoButton
+            briefId={id}
+            action="full"
+            primary
+            label={`Render with Higgsfield (~${montage?.estimate ?? 0} credits)`}
+            busyLabel="Rendering with Higgsfield… several minutes"
+            disabled={!montage?.higgsfield_ready}
+            title={montage?.higgsfield_ready ? undefined : "Add HIGGSFIELD_API_KEY to .env, then restart the board"}
+            confirm={`This spends about ${montage?.estimate ?? 0} Higgsfield credits. Continue?`}
+          />
+        )}
+        <VideoButton briefId={id} action="draft" label="Re-render draft (free)" busyLabel="Rendering… about a minute" />
+      </div>
+      {needsAi && !montage?.higgsfield_ready && (
+        <div className="text-xs text-muted max-w-xl">
+          Higgsfield isn&apos;t set up yet: add <code>HIGGSFIELD_API_KEY</code> (and for presenter videos{" "}
+          <code>ELEVENLABS_API_KEY</code>) to <code>.env</code>, restart the board, then re-render the draft to enable this button.
         </div>
       )}
     </div>

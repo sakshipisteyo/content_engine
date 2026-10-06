@@ -11,16 +11,22 @@ import {
   type FrameInput,
   type PageRender,
 } from "./slides";
-import { OutlineError, parseCarousel, parseList, parsePairs } from "./outline";
+import { OutlineError, parseCarousel, parseList, parsePairs, parseStat } from "./outline";
+import { renderPhotoHeadline, renderStatCard } from "./photo";
 
 /** Layouts that produce several pages per aspect (carousels). */
 export const MULTI_PAGE_LAYOUTS: TypographicLayout[] = ["insight-carousel"];
 
 /** Layouts drawn from `brief.body` (an outline) rather than the hook alone. */
-export const BODY_LAYOUTS: TypographicLayout[] = ["insight-carousel", "tips-list", "comparison"];
+export const BODY_LAYOUTS: TypographicLayout[] = ["insight-carousel", "tips-list", "comparison", "stat-card"];
+
+/** Layouts drawn over a photo (uploaded, Higgsfield-generated, brand photo or gradient). */
+export const PHOTO_LAYOUTS: TypographicLayout[] = ["photo-headline", "stat-card"];
 
 /** Aspects to render: carousels skip 9:16 (stories don't swipe like feed carousels). */
 export function layoutAspects(layout: TypographicLayout, primary: Aspect, crops: Aspect[]): Aspect[] {
+  // Photo posts are feed posts: landscape (LinkedIn), square and portrait; no stories size.
+  if (PHOTO_LAYOUTS.includes(layout)) return [...new Set<Aspect>([primary, "16:9", "1:1", "4:5"])];
   const all = [...new Set([primary, ...crops])];
   return MULTI_PAGE_LAYOUTS.includes(layout) ? all.filter((a) => a !== "9:16") : all;
 }
@@ -33,6 +39,7 @@ export function validateLayoutInput(layout: TypographicLayout, brief: Pick<Brief
   if (layout === "insight-carousel") parseCarousel(body);
   if (layout === "tips-list") parseList(body);
   if (layout === "comparison") parsePairs(body);
+  if (layout === "stat-card") parseStat(body);
 }
 
 export interface AspectRender {
@@ -54,6 +61,7 @@ async function renderPages(
   theme: Theme,
   aspect: Aspect,
   avatarPath: string | undefined,
+  photoPath?: string,
 ): Promise<PageRender[]> {
   const font = brand.font ?? DEFAULT_FONT;
   const displayName = brand.social?.display_name ?? brand.name;
@@ -80,6 +88,25 @@ async function renderPages(
       return [await renderTipsCard(frame, brief.hook, parseList(body))];
     case "comparison":
       return [await renderComparisonCard(frame, brief.hook, parsePairs(body))];
+    case "photo-headline":
+      return [
+        await renderPhotoHeadline({
+          aspect, theme, font, brandName: displayName, logoPath: avatarPath, photoPath,
+          headline: brief.hook,
+          ...(body.trim() ? { subline: body.trim() } : {}),
+        }),
+      ];
+    case "stat-card": {
+      const st = parseStat(body);
+      return [
+        await renderStatCard({
+          aspect, theme, font, brandName: displayName, logoPath: avatarPath, photoPath,
+          headline: brief.hook, stat: st.stat, label: st.label,
+          ...(st.body ? { subline: st.body } : {}),
+          chatMock: true,
+        }),
+      ];
+    }
   }
 }
 
@@ -91,12 +118,13 @@ export async function renderTypographicVariant(
   variant: number,
   aspects: Aspect[],
   avatarPath: string | undefined,
+  photoPath?: string,
 ): Promise<TypographicVariant> {
   const themes = quoteThemes(brand);
   const theme = themes[(variant - 1) % themes.length]!;
   const renders: AspectRender[] = [];
   for (const aspect of aspects) {
-    renders.push({ aspect, pages: await renderPages(layout, brand, brief, theme, aspect, avatarPath) });
+    renders.push({ aspect, pages: await renderPages(layout, brand, brief, theme, aspect, avatarPath, photoPath) });
   }
   return { variant, theme, renders, card: typographicScoreCard(brief.id, variant, theme, renders) };
 }

@@ -27,7 +27,8 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
     ? ((soft.brand_fit + soft.product_clarity + soft.hook_strength + soft.platform_fit) / 4).toFixed(1)
     : null;
   const format = d.plan?.format ?? d.brief?.format ?? "image";
-  const hook = d.brief?.hook ?? d.plan?.copy.caption ?? id;
+  // *stars* mark emphasis on photo posts; show the plain words here.
+  const hook = (d.brief?.hook ?? d.plan?.copy.caption ?? id).replace(/\*([^*\n]+)\*/g, "$1");
   const isSlides = d.plan?.post_kind === "slides";
   const isText = d.plan?.renderer === "typographic";
   const isMontage = d.plan?.renderer === "montage";
@@ -268,6 +269,7 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
 }
 
 const TEXT_SIZES = [
+  { file: "final_16x9.jpg", label: "16:9" },
   { file: "final_4x5.jpg", label: "4:5" },
   { file: "final_1x1.jpg", label: "1:1" },
   { file: "final_9x16.jpg", label: "9:16" },
@@ -336,7 +338,7 @@ function TextPostVariants({
                   ↓ {p.label}
                 </a>
               ))}
-              {TEXT_SIZES.filter((s) => v.pages.length <= 1 || s.label !== "9:16").map((s) => (
+              {TEXT_SIZES.filter((s) => v.sizes.includes(s.file) && (v.pages.length <= 1 || s.label !== "9:16")).map((s) => (
                 <a
                   key={s.file}
                   href={`/api/media/${id}/v${v.variant}/${s.file}`}

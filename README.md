@@ -14,6 +14,11 @@ scored posts in every size to review, approve, download and schedule.
   enterprise brand kits with exact colours and own fonts), and four text post types
   (quote card, insight carousel with LinkedIn PDF, tips list, myth vs fact) rendered
   locally for free, approvals, schedule, report.
+- **AI writer:** "Let AI write it" on New post — paste rough notes (or nothing) and Claude
+  picks the post type and writes it; "Give me ideas" suggests posts from your pillars.
+  Needs `ANTHROPIC_API_KEY` (or an `OPENROUTER_API_KEY`).
+- **Photo posts:** Photo Headline and Stat Card — bold text over your photo, a brand photo,
+  or a Higgsfield-generated scene.
 - **Video (works today, free drafts):** product walkthroughs from your screenshots or
   screen recordings, product demos, cinematic brand films and presenter/UGC videos in
   16:9, 9:16 and 1:1, plus "Make a video" on any text post. ffmpeg is bundled, nothing to

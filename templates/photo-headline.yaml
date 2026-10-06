@@ -1,0 +1,20 @@
+key: photo-headline
+name: Photo Headline (photo + text)
+description: A bold headline over a real-looking photo — like a magazine cover for LinkedIn. Upload a photo or describe one (Higgsfield generates it). Mark key words with *stars* to emphasise them.
+format: image
+platform: linkedin
+aspect: "16:9"
+mode: variants
+renderer: typographic
+layout: photo-headline
+asks_photo: true
+hook_label: Headline (wrap key words in *stars* to emphasise them)
+hook_placeholder: "e.g. Forward-deployed engineer: the translation layer between how a business *says* it works and how it *really* works."
+asks_body: true
+body_label: Subline (one short sentence under the headline)
+body_placeholder: Most AI projects stall because nobody looked over the shoulder of the person doing the job.
+default_variants: 3 # one per treatment: dark photo, white panel, brand tint
+default_credit_cap: 8
+uses_product_image: false
+copy_style: >
+  Open with the tension in the headline, add one concrete example from real work, then the CTA.

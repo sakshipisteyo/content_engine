@@ -22,6 +22,15 @@ export function CreateForm({
   const [media, setMedia] = useState<File[]>([]);
   const [presenter, setPresenter] = useState<File | null>(null);
   const [music, setMusic] = useState<File | null>(null);
+  const [photo, setPhoto] = useState<File | null>(null);
+  const [scene, setScene] = useState("");
+  // AI writer
+  const [notes, setNotes] = useState("");
+  const [aiPicks, setAiPicks] = useState(true);
+  const [aiBusy, setAiBusy] = useState<"" | "draft" | "ideas">("");
+  const [aiErr, setAiErr] = useState<string | null>(null);
+  const [aiWhy, setAiWhy] = useState<string | null>(null);
+  const [ideas, setIdeas] = useState<{ title: string; template: string; notes: string; why: string }[]>([]);
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
@@ -39,6 +48,55 @@ export function CreateForm({
     const b = brands.find((x) => x.key === k);
     setProduct(b?.products[0]?.key ?? "");
     setAnchor(b?.anchors[0]?.key ?? "");
+  }
+
+  async function aiDraft(fromNotes = notes, forceTemplate?: string) {
+    setAiBusy("draft");
+    setAiErr(null);
+    try {
+      const res = await fetch("/api/draft", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ brand: brandKey, notes: fromNotes, template: forceTemplate ?? (aiPicks ? undefined : templateKey) }),
+      });
+      const out = (await res.json().catch(() => ({}))) as {
+        error?: string;
+        draft?: { template: string; hook: string; body: string; attribution: string; scene: string; cta: string; angle: string; why: string };
+      };
+      if (!res.ok || !out.draft) return setAiErr(out.error ?? "The AI writer failed.");
+      const d = out.draft;
+      if (templates.some((t) => t.key === d.template)) setTemplateKey(d.template);
+      setHook(d.hook);
+      setBody(d.body);
+      setAttribution(d.attribution);
+      setScene(d.scene);
+      setCta(d.cta);
+      setAngle(d.angle);
+      setAiWhy(d.why || null);
+    } catch (e) {
+      setAiErr((e as Error).message);
+    } finally {
+      setAiBusy("");
+    }
+  }
+
+  async function aiIdeas() {
+    setAiBusy("ideas");
+    setAiErr(null);
+    try {
+      const res = await fetch("/api/draft", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ brand: brandKey, ideas: true }),
+      });
+      const out = (await res.json().catch(() => ({}))) as { error?: string; ideas?: typeof ideas };
+      if (!res.ok || !out.ideas) return setAiErr(out.error ?? "The AI writer failed.");
+      setIdeas(out.ideas);
+    } catch (e) {
+      setAiErr((e as Error).message);
+    } finally {
+      setAiBusy("");
+    }
   }
 
   async function submit() {
@@ -63,6 +121,10 @@ export function CreateForm({
     if (file && !isText) fd.set("product_image", file);
     if (isText && attribution.trim()) fd.set("attribution", attribution.trim());
     if (template?.asksBody && body.trim()) fd.set("body", body.trim());
+    if (template?.asksPhoto) {
+      if (photo) fd.append("media", photo);
+      if (scene.trim()) fd.set("scene", scene.trim());
+    }
     if (isVideo) {
       for (const m of media) fd.append("media", m);
       if (presenter) fd.set("presenter", presenter);
@@ -84,6 +146,70 @@ export function CreateForm({
 
   return (
     <div className="flex flex-col gap-6 max-w-3xl">
+      {/* AI writer */}
+      <section className="flex flex-col gap-3 p-5 rounded-xl border border-forest/30 bg-forest/5">
+        <div className="flex items-baseline justify-between gap-3">
+          <label htmlFor="ai-notes" className="text-sm font-semibold">✨ Let AI write it</label>
+          <span className="text-[11px] text-muted">Uses your brand&apos;s offer, pillars, proof points and tone</span>
+        </div>
+        <textarea
+          id="ai-notes"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={3}
+          placeholder={"Paste rough notes: what happened, a number, a lesson, a customer story. e.g.\nRolled out 6 AI agents at a hospital; 1,161 runs in the first weeks; the most-used one was the plain Q&A agent over their OneNote."}
+          className="px-3 py-2.5 border border-line2 rounded-[10px] text-sm bg-field resize-y"
+        />
+        <div className="flex flex-wrap items-center gap-3">
+          <button
+            type="button"
+            onClick={() => aiDraft()}
+            disabled={!!aiBusy || !brandKey}
+            className="h-10 px-4 rounded-[10px] bg-forest text-white text-sm font-semibold cursor-pointer hover:brightness-110 disabled:opacity-50"
+          >
+            {aiBusy === "draft" ? "Writing…" : notes.trim() ? "Write it for me" : "Surprise me (no notes)"}
+          </button>
+          <button
+            type="button"
+            onClick={aiIdeas}
+            disabled={!!aiBusy || !brandKey}
+            className="h-10 px-4 rounded-[10px] border border-line2 bg-panel text-sm font-semibold cursor-pointer hover:bg-active disabled:opacity-50"
+          >
+            {aiBusy === "ideas" ? "Thinking…" : "Give me ideas"}
+          </button>
+          <label className="flex items-center gap-2 text-xs text-muted cursor-pointer">
+            <input type="checkbox" checked={aiPicks} onChange={(e) => setAiPicks(e.target.checked)} />
+            Let AI pick the post type
+          </label>
+        </div>
+        {aiErr && <div className="text-sm text-clay">{aiErr}</div>}
+        {aiWhy && (
+          <div className="text-xs text-ink bg-panel border border-line rounded-[10px] px-3 py-2">
+            <span className="font-semibold">Drafted below — review, edit, then generate.</span> {aiWhy}
+          </div>
+        )}
+        {ideas.length > 0 && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+            {ideas.map((i) => (
+              <button
+                key={i.title}
+                type="button"
+                onClick={() => {
+                  setNotes(i.notes);
+                  setIdeas([]);
+                  aiDraft(i.notes, i.template);
+                }}
+                className="text-left p-3 rounded-[10px] border border-line2 bg-panel cursor-pointer hover:bg-active"
+              >
+                <div className="text-sm font-semibold">{i.title}</div>
+                <div className="text-[11px] text-muted mt-0.5 uppercase tracking-wide">{templates.find((t) => t.key === i.template)?.name ?? i.template}</div>
+                <div className="text-xs text-muted mt-1">{i.why}</div>
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
       {/* Template picker */}
       <div className="flex flex-col gap-2">
         <label className="text-sm font-semibold">1 · Pick an ad type</label>
@@ -200,6 +326,24 @@ export function CreateForm({
               </div>
             )}
           </>
+        )}
+        {template?.asksPhoto && (
+          <div className="flex flex-col gap-2 mt-2">
+            <FilePick
+              label={photo ? photo.name : "Photo (optional) — or describe one below and Higgsfield generates it"}
+              accept="image/png,image/jpeg,image/webp"
+              onPick={(f) => setPhoto(f[0] ?? null)}
+            />
+            <input
+              value={scene}
+              onChange={(e) => setScene(e.target.value)}
+              placeholder="Describe the photo, e.g. a factory floor, an engineer and an operator looking at a tablet together"
+              className="h-11 px-3 border border-line2 rounded-[10px] text-sm bg-field"
+            />
+            <div className="text-[11px] text-muted">
+              With no photo: Higgsfield generates the scene (needs a key, ~4 credits, made once and reused), else a brand photo or brand colours are used.
+            </div>
+          </div>
         )}
         {isVideo && (
           <div className="flex flex-col gap-3 mt-2">

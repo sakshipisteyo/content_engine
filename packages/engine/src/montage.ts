@@ -124,7 +124,7 @@ const DEFAULT_ASPECTS: Record<VideoKind, VideoAspect[]> = {
 /** Absolute path for a brief media path (stored relative to DATA_ROOT). */
 export const dataPath = (p: string) => (p.startsWith("/") || /^[A-Za-z]:[\\/]/.test(p) ? p : join(DATA_ROOT, p));
 
-function brandImages(brand: Brand, brandKey: string): string[] {
+export function brandImages(brand: Brand, brandKey: string): string[] {
   const rels = [
     ...Object.values(brand.products).flatMap((p) => p.images),
     ...Object.values(brand.style_anchors).flatMap((a) => a.references),

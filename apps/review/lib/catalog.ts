@@ -31,6 +31,8 @@ export interface TemplateCatalog {
   bodyPlaceholder: string | null;
   /** Video (montage) templates: which uploads the form asks for. */
   asksMedia: "screens" | "photos" | "presenter" | null;
+  /** Photo text posts: photo upload + scene description for Higgsfield. */
+  asksPhoto: boolean;
 }
 
 function yamlFiles(dir: string): string[] {
@@ -93,6 +95,7 @@ export function listTemplateCatalog(): TemplateCatalog[] {
         body_label?: string;
         body_placeholder?: string;
         asks_media?: "screens" | "photos" | "presenter";
+        asks_photo?: boolean;
       };
       out.push({
         key: y.key ?? f.replace(/\.ya?ml$/, ""),
@@ -109,6 +112,7 @@ export function listTemplateCatalog(): TemplateCatalog[] {
         bodyLabel: y.body_label ?? null,
         bodyPlaceholder: y.body_placeholder?.trim() ?? null,
         asksMedia: y.renderer === "montage" ? (y.asks_media ?? "photos") : null,
+        asksPhoto: y.asks_photo === true,
       });
     } catch {
       /* skip malformed template */

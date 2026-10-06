@@ -38,6 +38,7 @@ export async function POST(req: Request) {
   const anchor = String(form.get("anchor") ?? "");
   const attribution = String(form.get("attribution") ?? "").trim();
   const body = String(form.get("body") ?? "").trim();
+  const scene = String(form.get("scene") ?? "").trim();
   if (!brand || !template || !hook.trim()) {
     return Response.json({ error: "brand, template and hook are required" }, { status: 400 });
   }
@@ -87,6 +88,7 @@ export async function POST(req: Request) {
   }
   if (attribution) args.push("--attribution", attribution);
   if (body) args.push("--body", body);
+  if (scene) args.push("--scene", scene.slice(0, 600));
 
   const result = await new Promise<{ code: number; err: string }>((resolve) => {
     const child = spawn(process.execPath, args, { cwd: ROOT, windowsHide: true });

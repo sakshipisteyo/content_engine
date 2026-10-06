@@ -1,0 +1,22 @@
+key: stat-card
+name: Stat Card (photo + number)
+description: A big number that stops the scroll, over a photo, with a headline panel and a small chat-style mock — for results, case studies and "what we learned" posts.
+format: image
+platform: linkedin
+aspect: "1:1"
+mode: variants
+renderer: typographic
+layout: stat-card
+asks_photo: true
+hook_label: Headline (wrap key words in *stars* to emphasise them)
+hook_placeholder: "e.g. The most-used AI agent was… *vanilla*."
+asks_body: true
+body_label: First line "number | label", then the panel text
+body_placeholder: |
+  1,161 | runs in the first weeks
+  Adoption is the real question. Skip the complex, start with the simple. Ask a question, get the answer from the notes your team already keeps.
+default_variants: 3
+default_credit_cap: 8
+uses_product_image: false
+copy_style: >
+  Lead with the number and what surprised you, one line of why it matters, then the CTA.

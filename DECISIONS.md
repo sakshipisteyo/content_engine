@@ -298,3 +298,26 @@ decide and note the decision here." Newest first.
 
 57. **Text post -> video export** (slideshow / gentle push-in) for Reels, Shorts and LinkedIn
     video from the free text posts, at no cost.
+
+## 2026-10-07 — Photo text posts and the AI writer
+
+58. **Photo headline and stat card are typographic layouts, not AI images with text.** Image
+    models garble text; drawing the words ourselves over a photo keeps type exact, on-brand
+    and checkable (fit + contrast), and works free with an uploaded or brand photo.
+
+59. **One AI photo per post, reused.** The Higgsfield scene image is generated once
+    (`out/<id>/scene.png`) and shared by all three treatments and re-renders, within the
+    post's credit cap.
+
+60. **The AI writer drafts, the person decides.** It fills the form and explains its pick;
+    rendering still needs the user's click. Facts come only from their notes and proof
+    points, so it never invents numbers for stat posts.
+
+61. **Claude through the official Anthropic SDK for new AI features** (`claude-opus-5-5`,
+    structured outputs, refusal fallback). The old provider used forced `tool_choice`,
+    which current models reject; it now uses `output_config.format`. OpenRouter stays as a
+    fallback so an existing OpenRouter key still works. Installing `@anthropic-ai/sdk`
+    also cleared a long-standing typecheck error.
+
+62. **Drafts are validated against the template and retried once**, so a malformed outline
+    surfaces as a clear error instead of a broken post.

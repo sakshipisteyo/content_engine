@@ -115,3 +115,23 @@ export function parsePairs(body: string): Pairs {
   if (rows.length > MAX_PAIRS) throw new OutlineError(`at most ${MAX_PAIRS} pairs fit one card (got ${rows.length})`);
   return { leftLabel, rightLabel, rows };
 }
+
+/** Stat card body: first line "1,161 | runs in the first weeks", the rest is the panel text. */
+export interface StatOutline {
+  stat: string;
+  label: string;
+  body?: string;
+}
+
+export function parseStat(text: string): StatOutline {
+  const lines = text.split("\n").map((l) => l.trim()).filter(Boolean);
+  const first = lines.shift() ?? "";
+  const [stat, ...rest] = first.split("|");
+  const label = rest.join("|").trim();
+  if (!stat?.trim() || !label) {
+    throw new OutlineError('start with the number and its label, like "1,161 | runs in the first weeks"');
+  }
+  if (stat.trim().length > 12) throw new OutlineError("keep the number short (12 characters at most), e.g. 1,161 or 3x or 92%");
+  const body = lines.join(" ").trim();
+  return { stat: stat.trim(), label, ...(body ? { body } : {}) };
+}

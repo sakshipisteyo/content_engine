@@ -1,8 +1,10 @@
 /**
- * Anthropic provider. The ONLY place @anthropic-ai/sdk is imported.
- * json()  -> forced tool_use for guaranteed structured output (Claude has no
- *            OpenAI-style JSON mode; a single forced tool is the robust equivalent).
- * vision() -> same, with image content blocks prepended.
+ * Anthropic provider (official SDK). The ONLY place @anthropic-ai/sdk is imported.
+ * json()   -> structured outputs (output_config.format json_schema), parsed + returned.
+ * vision() -> same, with image content blocks first.
+ * Current Claude models reject forced tool_choice, so structured outputs replace the old
+ * forced-tool trick. Server-side refusal fallback ("default") is on: a policy decline is
+ * re-run on a fallback model inside the same call; a refusal of the whole chain throws.
  */
 import Anthropic from "@anthropic-ai/sdk";
 import { requireEnv } from "../config";
@@ -18,9 +20,10 @@ export interface JsonOptions {
   model: string;
   system?: string;
   maxTokens?: number;
+  effort?: "low" | "medium" | "high" | "xhigh" | "max";
 }
 
-/** JSON Schema for the single forced tool (object schema). */
+/** JSON Schema of the expected object (additionalProperties: false, all keys required). */
 export type ObjectSchema = {
   type: "object";
   properties: Record<string, unknown>;
@@ -28,55 +31,49 @@ export type ObjectSchema = {
   additionalProperties?: boolean;
 };
 
-const TOOL_NAME = "emit_result";
+export class RefusalError extends Error {}
 
-async function callForcedTool(
-  content: Anthropic.ContentBlockParam[],
-  schema: ObjectSchema,
-  opts: JsonOptions,
-): Promise<unknown> {
-  const res = await getClient().messages.create({
+async function structured(content: Anthropic.Beta.BetaContentBlockParam[], schema: ObjectSchema, opts: JsonOptions): Promise<unknown> {
+  const res = await getClient().beta.messages.create({
     model: opts.model,
-    max_tokens: opts.maxTokens ?? 2048,
+    max_tokens: opts.maxTokens ?? 16000,
+    betas: ["server-side-fallback-2026-07-01"],
+    fallbacks: "default",
     ...(opts.system ? { system: opts.system } : {}),
-    tools: [
-      {
-        name: TOOL_NAME,
-        description: "Return the result as structured JSON matching the schema.",
-        input_schema: schema as Anthropic.Tool.InputSchema,
-      },
-    ],
-    tool_choice: { type: "tool", name: TOOL_NAME },
+    output_config: {
+      ...(opts.effort ? { effort: opts.effort } : {}),
+      format: { type: "json_schema", schema: { additionalProperties: false, ...schema } },
+    },
     messages: [{ role: "user", content }],
   });
-  for (const block of res.content) {
-    if (block.type === "tool_use" && block.name === TOOL_NAME) return block.input;
+  if (res.stop_reason === "refusal") {
+    throw new RefusalError(`Claude declined this request${res.stop_details?.category ? ` (${res.stop_details.category})` : ""}`);
   }
-  throw new Error("Anthropic returned no tool_use block");
+  if (res.stop_reason === "max_tokens") throw new Error("Claude's answer was cut off (max_tokens); try shorter notes");
+  const text = res.content
+    .filter((b): b is Anthropic.Beta.BetaTextBlock => b.type === "text")
+    .map((b) => b.text)
+    .join("");
+  try {
+    return JSON.parse(text);
+  } catch {
+    throw new Error("Claude returned text that isn't valid JSON");
+  }
 }
 
 /** Structured completion from a text prompt. */
-export function json(
-  prompt: string,
-  schema: ObjectSchema,
-  opts: JsonOptions,
-): Promise<unknown> {
-  return callForcedTool([{ type: "text", text: prompt }], schema, opts);
+export function json(prompt: string, schema: ObjectSchema, opts: JsonOptions): Promise<unknown> {
+  return structured([{ type: "text", text: prompt }], schema, opts);
 }
 
 /** Structured completion from images + a rubric prompt (vision scoring). */
-export function vision(
-  imagePaths: string[],
-  rubric: string,
-  schema: ObjectSchema,
-  opts: JsonOptions,
-): Promise<unknown> {
-  const content: Anthropic.ContentBlockParam[] = [
-    ...imagePaths.map((p): Anthropic.ContentBlockParam => {
+export function vision(imagePaths: string[], rubric: string, schema: ObjectSchema, opts: JsonOptions): Promise<unknown> {
+  const content: Anthropic.Beta.BetaContentBlockParam[] = [
+    ...imagePaths.map((p): Anthropic.Beta.BetaContentBlockParam => {
       const { media_type, data } = imageToBase64(p);
       return { type: "image", source: { type: "base64", media_type, data } };
     }),
     { type: "text", text: rubric },
   ];
-  return callForcedTool(content, schema, opts);
+  return structured(content, schema, opts);
 }

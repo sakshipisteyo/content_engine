@@ -126,9 +126,35 @@ function v1Client(): HiggsfieldClient {
   return v1;
 }
 
-/** Upload bytes to the Higgsfield CDN; returns the public URL DoP / Speak can read. */
+/**
+ * Upload bytes to the Higgsfield CDN; returns the public URL DoP / Speak can read.
+ *
+ * Not the SDK's upload(): the presigned S3 URL is now also signed for an
+ * `x-amz-tagging` header that the API returns in `upload_headers`, and SDK 0.2.6 (the
+ * latest) sends only Content-Type — so every upload failed with 403
+ * SignatureDoesNotMatch. We send exactly the headers the API asks for.
+ */
 export async function uploadFile(data: Buffer, contentType: string): Promise<string> {
-  return v1Client().upload(data, contentType);
+  ensureConfigured();
+  const link = await fetch(`${BASE_URL}/files/generate-upload-url`, {
+    method: "POST",
+    headers: { Authorization: `Key ${credentials}`, "Content-Type": "application/json" },
+    body: JSON.stringify({ content_type: contentType }),
+  });
+  if (!link.ok) throw new Error(`Higgsfield upload link failed: ${link.status} ${await link.text()}`);
+  const slot = (await link.json()) as {
+    upload_url: string;
+    public_url: string;
+    content_type?: string;
+    upload_headers?: Record<string, string>;
+  };
+  const put = await fetch(slot.upload_url, {
+    method: "PUT",
+    headers: { "Content-Type": slot.content_type ?? contentType, ...(slot.upload_headers ?? {}) },
+    body: new Uint8Array(data),
+  });
+  if (!put.ok) throw new Error(`Higgsfield upload failed: ${put.status} ${(await put.text()).slice(0, 200)}`);
+  return slot.public_url;
 }
 
 export interface MotionPreset {

@@ -39,6 +39,7 @@ const {
   loadBrand,
   loadRoutes,
   loadTemplate,
+  loadEnv,
   ffmpeg,
   probeDuration,
   PATHS,
@@ -140,6 +141,9 @@ describe("runMontage", () => {
 
   it("full mode refuses without a Higgsfield key and over the credit cap", async () => {
     const brief = { ...base, id: "t-cap", template: "product-demo", media: [join(work, "a.png")], body: "One | dolly in" };
+    // Load .env first, or the engine's first loadEnv() restores a real key from the
+    // developer's .env after we delete it and the "no key" check never fires.
+    loadEnv();
     delete process.env.HIGGSFIELD_API_KEY;
     await expect(runMontage(ctx, brief, loadTemplate("product-demo"), caption, "full")).rejects.toThrow(/HIGGSFIELD_API_KEY/);
     process.env.HIGGSFIELD_API_KEY = "test:test";

@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getBriefDetail, type VariantView } from "../../../lib/data";
+import { getBriefDetail, savedCaption, type VariantView } from "../../../lib/data";
 import { StatusPill, Pill, Preview, ScoreBars } from "../../components/ui";
 import { VideoButton } from "../../components/VideoActions";
 import type { MontageInfo } from "../../../lib/data";
@@ -29,6 +29,7 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
   const format = d.plan?.format ?? d.brief?.format ?? "image";
   // *stars* mark emphasis on photo posts; show the plain words here.
   const hook = (d.brief?.hook ?? d.plan?.copy.caption ?? id).replace(/\*([^*\n]+)\*/g, "$1");
+  const saved = savedCaption(id);
   const isSlides = d.plan?.post_kind === "slides";
   const isText = d.plan?.renderer === "typographic";
   const isMontage = d.plan?.renderer === "montage";
@@ -226,8 +227,10 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
             <h2 className="m-0 font-display text-lg font-medium">Caption</h2>
             <CaptionBox
               briefId={id}
-              initial={d.plan?.copy.caption ?? ""}
-              hashtags={d.plan?.copy.hashtags ?? []}
+              // A caption saved from this box (already including its hashtags) wins over the
+              // AI one — before, saved edits were written to disk but never shown again.
+              initial={saved ?? d.plan?.copy.caption ?? ""}
+              hashtags={saved ? [] : d.plan?.copy.hashtags ?? []}
             />
           </section>
 

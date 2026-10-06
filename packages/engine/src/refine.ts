@@ -17,12 +17,38 @@ const COPY_SCHEMA: ObjectSchema = {
   additionalProperties: false,
 };
 
+const SHORT_RULE =
+  "Write: a caption (<= 300 characters), 5-8 hashtags, and — only for video — a spoken " +
+  "voiceover script of 2-3 sentences (<= 55 words) that lands the hook and the CTA.";
+
+const LONG_RULE =
+  "Write a full LinkedIn post as the caption, 110-200 words: a first line that stops the scroll " +
+  "(a tension, a surprising fact or a question — no greeting, no emoji), short paragraphs of 1-2 " +
+  "sentences separated by blank lines, the point in plain words, one concrete example (a " +
+  "hypothetical clearly framed as one unless the facts above give a real one), and a closing " +
+  "question that invites comments, then the CTA. Hashtags: 2-4. Script: null unless video. " +
+  "Never present an example as the brand's own experience (\"we see\", \"our clients\", \"a client of ours\") " +
+  "and never use a number, percentage or amount that is not in the facts above.";
+
+/** Numbers in the caption ("50%", "3x", "$2M", "1,161") that none of the facts contain. */
+export function unsupportedNumbers(caption: string, facts: (string | undefined)[]): string[] {
+  const known = facts.filter(Boolean).join(" ").replace(/,/g, "");
+  const found = caption.match(/\$?\d[\d,]*(?:\.\d+)?\s?(?:%|x\b|k\b|m\b|bn\b|percent\b)?/gi) ?? [];
+  return [...new Set(found.map((n) => n.trim()))].filter((n) => {
+    const digits = n.replace(/[^\d.]/g, "").replace(/\.$/, "");
+    // Years ("2026") are fine; anything else must appear in the facts.
+    return digits.length > 0 && !known.includes(digits) && !/^20\d\d$/.test(digits);
+  });
+}
+
 export async function refineCopy(
   brand: Brand,
   brief: Brief,
   prompt: PromptsFile,
   model: string,
   copyStyle = "",
+  // LinkedIn rewards a real post (hook line, short paragraphs, a question), not a one-liner.
+  long = brief.platform === "linkedin",
 ): Promise<Copy> {
   const productNames = brief.products
     .map((k) => brand.products[k]?.name ?? k)
@@ -40,17 +66,37 @@ export async function refineCopy(
     banned_words: brand.banned_words.join(", "),
     template_copy_style: copyStyle,
     brand_context: brandContext(brand) || "none",
+    post_content: brief.body?.trim()
+      ? `The image already shows this (expand on it, don't contradict or just repeat it):\n${brief.body.trim()}`
+      : "",
+    source_note: brief.source
+      ? `This post is the brand's take on a news story: "${brief.source.title}"` +
+        `${brief.source.publisher ? ` (${brief.source.publisher}` : " ("}${brief.source.date ? `, ${brief.source.date}` : ""}).` +
+        ` State only facts from that story, name the publisher, and end the caption with the link on its own line: ${brief.source.url}`
+      : "",
+    length_rule: long ? LONG_RULE : SHORT_RULE,
   };
   const text = interpolate(prompt.template, tokens);
-  const raw = (await json(text, COPY_SCHEMA, {
-    model,
-    system: prompt.system,
-    maxTokens: 700,
-  })) as { caption: string; hashtags: string[]; script?: string | null };
+  const generate = (extra = "") =>
+    json(text + extra, COPY_SCHEMA, { model, system: prompt.system, maxTokens: long ? 1400 : 700 }) as Promise<{
+      caption: string;
+      hashtags: string[];
+      script?: string | null;
+    }>;
+  let raw = await generate();
+  // Invented numbers read as claims ("50% faster"): rewrite once without them.
+  const invented = unsupportedNumbers(raw.caption, [brief.hook, brief.body, brief.cta, brief.source?.title, brief.source?.date, brief.source?.url, ...(brand.proof_points ?? [])]);
+  if (invented.length) {
+    raw = await generate(
+      `\nYour previous caption used numbers that are not in the facts (${invented.join(", ")}). Rewrite it without them.`,
+    );
+  }
 
   const copy: Copy = {
-    caption: raw.caption,
-    hashtags: raw.hashtags ?? [],
+    // *stars* mark emphasis on the image only; in a caption they'd show literally.
+    caption: raw.caption.replace(/\*([^*\n]+)\*/g, "$1"),
+    // Models sometimes drop the "#"; the board and the platforms need it.
+    hashtags: (raw.hashtags ?? []).map((t) => t.trim().replace(/^#*/, "#")).filter((t) => t.length > 1),
     ...(brief.format === "video" && raw.script ? { script: raw.script } : {}),
   };
   return CopySchema.parse(copy);

@@ -79,6 +79,16 @@ export const BriefSchema = z
     music: z.string().optional(),
     /** Photo posts: what the photo should show; Higgsfield generates it when no photo is uploaded. */
     scene: z.string().optional(),
+    /** News posts: the story the post is about. The caption names and links it. */
+    source: z
+      .object({
+        title: z.string().min(1),
+        url: z.string().url(),
+        publisher: z.string().optional(),
+        date: z.string().optional(),
+      })
+      .strict()
+      .optional(),
   })
   .strict();
 export type Brief = z.infer<typeof BriefSchema>;
@@ -474,6 +484,14 @@ export const RoutesSchema = z
       .object({
         model: z.string().min(1),
         effort: z.enum(["low", "medium", "high", "xhigh", "max"]).default("medium"),
+      })
+      .strict()
+      .optional(),
+    /** "What's new" news search (OpenRouter web plugin). Defaults to copy.model, 10 results. */
+    news: z
+      .object({
+        model: z.string().min(1),
+        max_results: z.number().int().min(1).max(25).default(10),
       })
       .strict()
       .optional(),

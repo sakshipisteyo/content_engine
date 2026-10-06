@@ -38,6 +38,14 @@ function variantDirs(id: string): number[] {
     .sort((a, b) => a - b);
 }
 
+/** The caption saved from the board's caption box (out/<id>/caption.txt), if any. */
+export function savedCaption(id: string): string | null {
+  const file = join(OUT_DIR, id, "caption.txt");
+  if (!existsSync(file)) return null;
+  const text = readFileSync(file, "utf8");
+  return text.trim() ? text : null;
+}
+
 export function mediaUrl(id: string, variant: number, format: string): string | null {
   const candidates =
     format === "video"

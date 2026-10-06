@@ -89,6 +89,15 @@ export async function POST(req: Request) {
   if (attribution) args.push("--attribution", attribution);
   if (body) args.push("--body", body);
   if (scene) args.push("--scene", scene.slice(0, 600));
+  // News posts: the story the caption cites (validated as a URL by the brief schema).
+  const sourceUrl = String(form.get("source_url") ?? "").trim();
+  if (/^https?:\/\//.test(sourceUrl)) {
+    args.push("--source-url", sourceUrl.slice(0, 1000), "--source-title", String(form.get("source_title") ?? "").trim().slice(0, 300) || sourceUrl);
+    const pub = String(form.get("source_publisher") ?? "").trim();
+    const date = String(form.get("source_date") ?? "").trim();
+    if (pub) args.push("--source-publisher", pub.slice(0, 120));
+    if (date) args.push("--source-date", date.slice(0, 20));
+  }
 
   const result = await new Promise<{ code: number; err: string }>((resolve) => {
     const child = spawn(process.execPath, args, { cwd: ROOT, windowsHide: true });

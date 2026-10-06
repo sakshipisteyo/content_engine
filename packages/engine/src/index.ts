@@ -23,3 +23,4 @@ export * from "./montage";
 export * from "./ideate";
 export * from "./ledger";
 export * from "./pipeline";
+export * from "./news";

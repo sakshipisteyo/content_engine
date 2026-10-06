@@ -2,9 +2,10 @@
  * AI writer from the command line / the board's "Let AI write it" panel.
  *   tsx scripts/draft.ts --brand acme [--template stat-card] [--notes "..."]   -> one draft (JSON)
  *   tsx scripts/draft.ts --brand acme --ideas [--count 6]                      -> ideas (JSON)
+ *   tsx scripts/draft.ts --brand acme --news [--count 5]                       -> ideas from this week's news (JSON)
  * Prints JSON on stdout; errors as "error: ..." on stderr.
  */
-import { draftPost, suggestIdeas, loadBrand, loadRoutes, loadEnv } from "../packages/engine/src/index";
+import { draftPost, suggestIdeas, newsIdeas, loadBrand, loadRoutes, loadEnv } from "../packages/engine/src/index";
 
 function arg(name: string): string | undefined {
   const i = process.argv.indexOf(`--${name}`);
@@ -17,7 +18,10 @@ try {
   if (!brandKey) throw new Error("--brand required");
   const brand = loadBrand(brandKey);
   const routes = loadRoutes();
-  if (process.argv.includes("--ideas")) {
+  if (process.argv.includes("--news")) {
+    const { ideas, searched } = await newsIdeas(brand, routes, Math.min(8, Math.max(1, Number(arg("count") ?? 5))));
+    console.log(JSON.stringify({ ideas, searched }));
+  } else if (process.argv.includes("--ideas")) {
     const ideas = await suggestIdeas(brand, routes, Math.min(10, Math.max(1, Number(arg("count") ?? 6))));
     console.log(JSON.stringify({ ideas }));
   } else {

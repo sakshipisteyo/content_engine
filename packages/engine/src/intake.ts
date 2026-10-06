@@ -105,7 +105,8 @@ export function brandFromIntake(raw: Intake, files: IntakeFiles, detected: strin
           i.business_type === "service"
             ? "clean, modern, on-brand, people and workspaces, natural light"
             : "on-brand, natural directional light, the product as the clear hero",
-        references: firstImage ? [`assets/${firstImage}`] : [],
+        // Only a real photo steers AI images; a logo as reference gets painted into scenes.
+        references: files.products[0] ? [`assets/${files.products[0]}`] : [],
       },
     },
     voice_id: "REPLACE_WITH_ELEVENLABS_VOICE_ID",

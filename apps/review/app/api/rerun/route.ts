@@ -1,22 +1,8 @@
-import { spawn } from "node:child_process";
-import { readFileSync } from "node:fs";
-import { join } from "node:path";
-import { ROOT, engineArgs } from "../../../lib/repo";
+import { generatingSince, hasKeys, startRun } from "../../../lib/generate";
 
 export const dynamic = "force-dynamic";
 
 const STAGES = ["compile", "hero", "score-1", "motion", "copy", "voice", "assemble", "score-2"];
-
-/** True if .env has at least the provider keys a real run needs. */
-function hasKeys(): boolean {
-  try {
-    const env = readFileSync(join(ROOT, ".env"), "utf8");
-    const get = (k: string) => new RegExp(`^${k}\\s*=\\s*(.+)$`, "m").exec(env)?.[1]?.trim();
-    return Boolean(get("OPENROUTER_API_KEY") && get("HIGGSFIELD_API_KEY"));
-  } catch {
-    return false;
-  }
-}
 
 export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as
@@ -33,17 +19,20 @@ export async function POST(req: Request) {
     });
   }
 
-  const args = [...engineArgs("run"), "--only", body.brief_id, "--from", body.from];
-  if (body.note) args.push("--note", body.note);
-
-  try {
-    const child = spawn(process.execPath, args, {
-      cwd: ROOT,
-      detached: true,
-      stdio: "ignore",
-      windowsHide: true,
+  // Two runs of one post race on its output folder and the ledger (one crashed doing it).
+  const since = generatingSince(body.brief_id);
+  if (since) {
+    const mins = Math.max(1, Math.round((Date.now() - since) / 60000));
+    return Response.json({
+      started: false,
+      reason: `already generating (started ${mins} min ago) — refresh in a bit`,
     });
-    child.unref();
+  }
+
+  const extra = ["--from", body.from];
+  if (body.note) extra.push("--note", body.note);
+  try {
+    startRun(body.brief_id, extra);
     return Response.json({ started: true });
   } catch (e) {
     return Response.json({ started: false, reason: (e as Error).message }, { status: 500 });

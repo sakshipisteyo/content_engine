@@ -245,7 +245,11 @@ const NEWS_IDEAS_JSON: Schema = {
  * each written as the brand's take on the story — not a news summary. The idea's notes
  * carry the story's facts and link, so the drafted post and its caption stay sourced.
  */
-export async function newsIdeas(brand: Brand, routes: Routes, count = 5): Promise<{ ideas: Idea[]; searched: number }> {
+export async function newsIdeas(
+  brand: Brand,
+  routes: Routes,
+  count = 5,
+): Promise<{ ideas: Idea[]; news: NewsPick[]; searched: number }> {
   const { findNews } = await import("./news");
   const stories = await findNews(brand, routes, { days: 14, max: 8 });
   if (!stories.length) throw new Error("no recent stories with a working link were found for this brand's field; try again later");
@@ -283,5 +287,26 @@ export async function newsIdeas(brand: Brand, routes: Routes, count = 5): Promis
       source: { title: s.headline, url: s.url, publisher: s.publisher, date: s.date },
     });
   }
-  return { ideas: ideas.slice(0, count), searched: stories.length };
+  // Every verified story is offered so the rep can pick any of them; the ones the AI
+  // judged most relevant carry its suggested angle and post type.
+  const picked = ideas.slice(0, count);
+  const news: NewsPick[] = stories.map((s) => {
+    const idea = picked.find((i) => i.source?.url === s.url);
+    return {
+      ...s,
+      ...(idea ? { idea } : {}),
+      notes:
+        idea?.notes ??
+        [
+          `News (${s.date}, ${s.publisher}): ${s.headline}. ${s.summary}`,
+          `Source: ${s.url}`,
+          "Write the post as the brand's take on this story for its audience. State only facts from the story; name the source.",
+        ].join("\n"),
+    };
+  });
+  news.sort((a, b) => Number(!!b.idea) - Number(!!a.idea));
+  return { ideas: picked, news, searched: stories.length };
 }
+
+/** A verified story the rep can pick; `idea` = the AI's suggested angle, when it chose one. */
+export type NewsPick = import("./news").NewsItem & { notes: string; idea?: Idea };

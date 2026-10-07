@@ -225,9 +225,15 @@ export function planMontage(brief: Brief, brand: Brand, brandKey: string, templa
 
   const intro: PlannedShot = {
     type: "card",
-    title: brief.hook,
-    // The angle defaults to the template name; only a real angle or the offer is worth showing.
-    ...(brand.offer || brief.angle !== template.name ? { subtitle: brand.offer ?? brief.angle } : {}),
+    // *stars* emphasise words on photo posts; the video card draws plain text.
+    title: brief.hook.replace(/\*([^*\n]+)\*/g, "$1"),
+    // A real angle (not the template-name default) is worth showing; the offer only when it
+    // reads like a tagline — a long intake description looks like notes on screen.
+    ...(brief.angle !== template.name
+      ? { subtitle: brief.angle }
+      : brand.offer && brand.offer.length <= 60
+        ? { subtitle: brand.offer }
+        : {}),
     seconds: 3,
     fit: "cover",
   };

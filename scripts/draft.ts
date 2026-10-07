@@ -19,8 +19,8 @@ try {
   const brand = loadBrand(brandKey);
   const routes = loadRoutes();
   if (process.argv.includes("--news")) {
-    const { ideas, searched } = await newsIdeas(brand, routes, Math.min(8, Math.max(1, Number(arg("count") ?? 5))));
-    console.log(JSON.stringify({ ideas, searched }));
+    const { ideas, news, searched } = await newsIdeas(brand, routes, Math.min(8, Math.max(1, Number(arg("count") ?? 5))));
+    console.log(JSON.stringify({ ideas, news, searched }));
   } else if (process.argv.includes("--ideas")) {
     const ideas = await suggestIdeas(brand, routes, Math.min(10, Math.max(1, Number(arg("count") ?? 6))));
     console.log(JSON.stringify({ ideas }));

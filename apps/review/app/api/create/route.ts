@@ -1,7 +1,8 @@
 import { spawn } from "node:child_process";
-import { mkdirSync, writeFileSync } from "node:fs";
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { extname, join } from "node:path";
 import { ROOT, engineArgs, DATA_DIR } from "../../../lib/repo";
+import { hasKeys, startRun } from "../../../lib/generate";
 
 export const dynamic = "force-dynamic";
 
@@ -114,5 +115,19 @@ export async function POST(req: Request) {
       { status: 500 },
     );
   }
-  return Response.json({ id });
+
+  // AI-photo posts (product hero, founder story, UGC…): with keys present, generate right
+  // away instead of leaving a plan with a placeholder caption that waits for a manual
+  // re-run. Text, photo-text and video posts are already rendered by create.
+  let generating = false;
+  try {
+    const plan = JSON.parse(readFileSync(join(DATA_DIR, "out", id, "prompt.json"), "utf8")) as { renderer?: string };
+    if (!plan.renderer && hasKeys()) {
+      startRun(id);
+      generating = true;
+    }
+  } catch {
+    /* no plan written: nothing to generate */
+  }
+  return Response.json({ id, generating });
 }

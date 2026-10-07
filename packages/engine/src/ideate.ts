@@ -157,6 +157,8 @@ export async function draftPost(
   for (let attempt = 0; attempt < 2; attempt++) {
     const draft = DraftSchema.parse(await ask(prompt, DRAFT_JSON, routes, SYSTEM));
     if (fixed) draft.template = fixed.key;
+    // *stars* emphasise words only on photo layouts; elsewhere they'd print literally.
+    if (!all.find((t) => t.key === draft.template)?.asks_photo) draft.hook = draft.hook.replace(/\*([^*\n]+)\*/g, "$1");
     const problem = problemWith(draft, all.find((t) => t.key === draft.template), brand, brandKey, routes);
     if (!problem) return draft;
     prompt = `${base}\n\nYour previous draft had a problem: ${problem}. Fix it and return the full draft again.`;

@@ -27,7 +27,9 @@ const LONG_RULE =
   "sentences separated by blank lines, the point in plain words, one concrete example (a " +
   "hypothetical clearly framed as one unless the facts above give a real one), and a closing " +
   "question that invites comments, then the CTA. Hashtags: 2-4. Script: null unless video. " +
-  "Never present an example as the brand's own experience (\"we see\", \"our clients\", \"a client of ours\") " +
+  "Never present an example as the brand's own experience (\"we see\", \"our clients\", \"a client of ours\"), " +
+  "and never invent a personal story, timeline or conversation (\"three months into…\", \"I realized\", " +
+  "\"last week a CEO told me\") — a founder voice states a point of view, not made-up events; " +
   "and never use a number, percentage or amount that is not in the facts above.";
 
 /** Numbers in the caption ("50%", "3x", "$2M", "1,161") that none of the facts contain. */

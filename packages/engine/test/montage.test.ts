@@ -148,6 +148,8 @@ describe("runMontage", () => {
     await expect(runMontage(ctx, brief, loadTemplate("product-demo"), caption, "full")).rejects.toThrow(/HIGGSFIELD_API_KEY/);
     process.env.HIGGSFIELD_API_KEY = "test:test";
     await expect(runMontage(ctx, { ...brief, credit_cap: 1 }, loadTemplate("product-demo"), caption, "full")).rejects.toThrow(/over the post's cap/);
+    // Don't leave a "t-cap" post on the developer's review board.
+    rmSync(join(PATHS.out, brief.id), { recursive: true, force: true });
   });
 
   it("full mode uploads, animates with the matched preset, records credits and renders all sizes", async () => {

@@ -3,6 +3,25 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import type { BrandCatalog, TemplateCatalog } from "../../lib/catalog";
 
+/** Browser network failures say "Failed to fetch"; tell the rep what to do instead. */
+function friendly(e: unknown): string {
+  const m = (e as Error)?.message ?? String(e);
+  return /failed to fetch|networkerror|load failed/i.test(m)
+    ? "Couldn't reach the app — check the connection (or that the app is still running) and try again."
+    : m;
+}
+
+type Source = { title: string; url: string; publisher?: string; date?: string };
+type NewsCard = {
+  headline: string;
+  date: string;
+  publisher: string;
+  url: string;
+  summary: string;
+  notes: string;
+  idea?: { title: string; template: string; notes: string; why: string };
+};
+
 export function CreateForm({
   brands,
   templates,
@@ -12,7 +31,8 @@ export function CreateForm({
 }) {
   const router = useRouter();
   const [brandKey, setBrandKey] = useState(brands[0]?.key ?? "");
-  const [templateKey, setTemplateKey] = useState(templates[0]?.key ?? "");
+  // Photo Headline is the LinkedIn staple and needs nothing uploaded: the sensible start.
+  const [templateKey, setTemplateKey] = useState((templates.find((t) => t.key === "photo-headline") ?? templates[0])?.key ?? "");
   const [hook, setHook] = useState("");
   const [cta, setCta] = useState("");
   const [angle, setAngle] = useState("");
@@ -27,16 +47,32 @@ export function CreateForm({
   // AI writer
   const [notes, setNotes] = useState("");
   const [aiPicks, setAiPicks] = useState(true);
-  const [aiBusy, setAiBusy] = useState<"" | "draft" | "ideas">("");
+  const [aiBusy, setAiBusy] = useState<"" | "draft" | "ideas" | "news">("");
   const [aiErr, setAiErr] = useState<string | null>(null);
   const [aiWhy, setAiWhy] = useState<string | null>(null);
-  const [ideas, setIdeas] = useState<{ title: string; template: string; notes: string; why: string }[]>([]);
+  const [ideas, setIdeas] = useState<{ title: string; template: string; notes: string; why: string; source?: Source }[]>([]);
+  // News posts: the verified story the post is about (its caption cites and links it).
+  const [source, setSource] = useState<Source | null>(null);
+  // "What's new": verified stories to pick from.
+  const [newsList, setNewsList] = useState<NewsCard[]>([]);
+
+  function writeAbout(n: NewsCard) {
+    setNotes(n.notes);
+    setSource({ title: n.headline, url: n.url, publisher: n.publisher, date: n.date });
+    setNewsList([]);
+    void aiDraft(n.notes, n.idea?.template ?? (aiPicks ? undefined : templateKey));
+  }
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
 
   const brand = useMemo(() => brands.find((b) => b.key === brandKey), [brands, brandKey]);
   const template = useMemo(() => templates.find((t) => t.key === templateKey), [templates, templateKey]);
   const isText = template?.renderer === "typographic";
+  const orderedTemplates = useMemo(() => {
+    if (brand?.businessType !== "service") return templates;
+    const rank = (t: (typeof templates)[number]) => (t.renderer === "typographic" ? 0 : t.renderer === "montage" ? 1 : 2);
+    return [...templates].sort((a, b) => rank(a) - rank(b));
+  }, [templates, brand?.businessType]);
   const isVideo = template?.renderer === "montage";
   /** Text and video posts need only the brand (no product / style pickers). */
   const simple = isText || isVideo;
@@ -74,26 +110,33 @@ export function CreateForm({
       setAngle(d.angle);
       setAiWhy(d.why || null);
     } catch (e) {
-      setAiErr((e as Error).message);
+      setAiErr(friendly(e));
     } finally {
       setAiBusy("");
     }
   }
 
-  async function aiIdeas() {
-    setAiBusy("ideas");
+  async function aiIdeas(news = false) {
+    setAiBusy(news ? "news" : "ideas");
     setAiErr(null);
     try {
       const res = await fetch("/api/draft", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ brand: brandKey, ideas: true }),
+        body: JSON.stringify({ brand: brandKey, ...(news ? { news: true } : { ideas: true }) }),
       });
-      const out = (await res.json().catch(() => ({}))) as { error?: string; ideas?: typeof ideas };
+      const out = (await res.json().catch(() => ({}))) as { error?: string; ideas?: typeof ideas; news?: NewsCard[] };
       if (!res.ok || !out.ideas) return setAiErr(out.error ?? "The AI writer failed.");
-      setIdeas(out.ideas);
+      if (news) {
+        // The rep picks the story; ideas stay attached to the stories they're about.
+        setNewsList(out.news ?? []);
+        setIdeas([]);
+      } else {
+        setIdeas(out.ideas);
+        setNewsList([]);
+      }
     } catch (e) {
-      setAiErr((e as Error).message);
+      setAiErr(friendly(e));
     } finally {
       setAiBusy("");
     }
@@ -121,6 +164,12 @@ export function CreateForm({
     if (file && !isText) fd.set("product_image", file);
     if (isText && attribution.trim()) fd.set("attribution", attribution.trim());
     if (template?.asksBody && body.trim()) fd.set("body", body.trim());
+    if (source) {
+      fd.set("source_url", source.url);
+      fd.set("source_title", source.title);
+      if (source.publisher) fd.set("source_publisher", source.publisher);
+      if (source.date) fd.set("source_date", source.date);
+    }
     if (template?.asksPhoto) {
       if (photo) fd.append("media", photo);
       if (scene.trim()) fd.set("scene", scene.trim());
@@ -136,7 +185,7 @@ export function CreateForm({
       if (res.ok && body.id) router.push(`/brief/${body.id}`);
       else setErr(body.error ?? "Create failed.");
     } catch (e) {
-      setErr((e as Error).message);
+      setErr(friendly(e));
     } finally {
       setBusy(false);
     }
@@ -171,11 +220,20 @@ export function CreateForm({
           </button>
           <button
             type="button"
-            onClick={aiIdeas}
+            onClick={() => aiIdeas()}
             disabled={!!aiBusy || !brandKey}
             className="h-10 px-4 rounded-[10px] border border-line2 bg-panel text-sm font-semibold cursor-pointer hover:bg-active disabled:opacity-50"
           >
             {aiBusy === "ideas" ? "Thinking…" : "Give me ideas"}
+          </button>
+          <button
+            type="button"
+            onClick={() => aiIdeas(true)}
+            disabled={!!aiBusy || !brandKey}
+            title="Searches this week's news in your brand's field and suggests your take on it"
+            className="h-10 px-4 rounded-[10px] border border-line2 bg-panel text-sm font-semibold cursor-pointer hover:bg-active disabled:opacity-50"
+          >
+            {aiBusy === "news" ? "Searching the news… ~1 min" : "📰 What's new"}
           </button>
           <label className="flex items-center gap-2 text-xs text-muted cursor-pointer">
             <input type="checkbox" checked={aiPicks} onChange={(e) => setAiPicks(e.target.checked)} />
@@ -183,9 +241,66 @@ export function CreateForm({
           </label>
         </div>
         {aiErr && <div className="text-sm text-clay">{aiErr}</div>}
+        {source && (
+          <div className="flex items-center gap-2 text-xs bg-panel border border-line rounded-[10px] px-3 py-2">
+            <span className="font-semibold">News source:</span>
+            <a href={source.url} target="_blank" rel="noreferrer" className="text-forest truncate">
+              {source.publisher ? `${source.publisher}: ` : ""}{source.title}
+            </a>
+            <button type="button" onClick={() => setSource(null)} className="ml-auto text-muted cursor-pointer" aria-label="Remove source">✕</button>
+          </div>
+        )}
         {aiWhy && (
           <div className="text-xs text-ink bg-panel border border-line rounded-[10px] px-3 py-2">
             <span className="font-semibold">Drafted below — review, edit, then generate.</span> {aiWhy}
+          </div>
+        )}
+        {newsList.length > 0 && (
+          <div className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between gap-3">
+              <div className="text-sm font-semibold">This week in your field — pick a story</div>
+              <button type="button" onClick={() => setNewsList([])} className="text-xs text-muted cursor-pointer hover:text-ink">
+                Close
+              </button>
+            </div>
+            <div className="text-[11px] text-muted -mt-1">
+              Every story was found by a live web search and its link checked. ★ = the AI&apos;s top picks for your audience.
+            </div>
+            {newsList.map((n) => (
+              <div key={n.url} className="flex flex-col gap-1.5 p-3 rounded-[10px] border border-line2 bg-panel">
+                <div className="flex items-start gap-2">
+                  <div className="flex-1 min-w-0">
+                    <div className="text-sm font-semibold leading-snug">
+                      {n.idea && <span className="text-forest" title="AI top pick">★ </span>}
+                      {n.headline}
+                    </div>
+                    <div className="text-[11px] text-muted mt-0.5">
+                      {n.publisher} · {n.date} ·{" "}
+                      <a href={n.url} target="_blank" rel="noreferrer" className="text-forest hover:underline">
+                        Read the story ↗
+                      </a>
+                    </div>
+                  </div>
+                </div>
+                <div className="text-xs text-muted line-clamp-2">{n.summary}</div>
+                {n.idea && (
+                  <div className="text-xs bg-forest/5 border border-forest/20 rounded-lg px-2.5 py-1.5">
+                    <span className="font-semibold">Suggested post:</span> {n.idea.title}{" "}
+                    <span className="text-muted">· {templates.find((t) => t.key === n.idea!.template)?.name ?? n.idea.template}</span>
+                  </div>
+                )}
+                <div>
+                  <button
+                    type="button"
+                    onClick={() => writeAbout(n)}
+                    disabled={!!aiBusy}
+                    className="h-9 px-3 rounded-[10px] bg-forest text-white text-xs font-semibold cursor-pointer hover:brightness-110 disabled:opacity-50"
+                  >
+                    Write a post about this
+                  </button>
+                </div>
+              </div>
+            ))}
           </div>
         )}
         {ideas.length > 0 && (
@@ -196,6 +311,7 @@ export function CreateForm({
                 type="button"
                 onClick={() => {
                   setNotes(i.notes);
+                  setSource(i.source ?? null);
                   setIdeas([]);
                   aiDraft(i.notes, i.template);
                 }}
@@ -204,6 +320,11 @@ export function CreateForm({
                 <div className="text-sm font-semibold">{i.title}</div>
                 <div className="text-[11px] text-muted mt-0.5 uppercase tracking-wide">{templates.find((t) => t.key === i.template)?.name ?? i.template}</div>
                 <div className="text-xs text-muted mt-1">{i.why}</div>
+                {i.source && (
+                  <div className="text-[11px] text-forest mt-1 truncate">
+                    {i.source.publisher}{i.source.date ? ` · ${i.source.date}` : ""} — {i.source.title}
+                  </div>
+                )}
               </button>
             ))}
           </div>
@@ -211,10 +332,11 @@ export function CreateForm({
       </section>
 
       {/* Template picker */}
+      {/* Service brands (no product photos): text and photo-text posts first, product-photo types last. */}
       <div className="flex flex-col gap-2">
         <label className="text-sm font-semibold">1 · Pick an ad type</label>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {templates.map((t) => (
+          {orderedTemplates.map((t) => (
             <button
               key={t.key}
               onClick={() => setTemplateKey(t.key)}
@@ -424,10 +546,12 @@ export function CreateForm({
         </button>
         <span className="text-xs text-muted">
           {isText
-            ? "Renders now — dark, light and brand-colour versions, free."
+            ? template?.asksPhoto
+              ? "Renders now. With no photo uploaded, AI makes the background (~4 credits)."
+              : "Renders now — dark, light and brand-colour versions, free."
             : isVideo
               ? "Renders a free draft in 16:9, 9:16 and 1:1. Higgsfield shots render from the post page."
-              : "Compiles the plan now; real pixels render once API keys are added."}
+              : "Generates the images now with Higgsfield (~4 credits per version) — takes 1–3 minutes."}
         </span>
       </div>
     </div>

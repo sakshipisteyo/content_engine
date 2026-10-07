@@ -1,11 +1,13 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { getBriefDetail, type VariantView } from "../../../lib/data";
+import { getBriefDetail, savedCaption, type VariantView } from "../../../lib/data";
 import { StatusPill, Pill, Preview, ScoreBars } from "../../components/ui";
 import { VideoButton } from "../../components/VideoActions";
 import type { MontageInfo } from "../../../lib/data";
 import { CaptionBox } from "../../components/CaptionBox";
 import { DecisionBar } from "../../components/DecisionBar";
+import { AutoRefresh } from "../../components/AutoRefresh";
+import { generatingSince, hasKeys } from "../../../lib/generate";
 
 export const dynamic = "force-dynamic";
 
@@ -29,10 +31,14 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
   const format = d.plan?.format ?? d.brief?.format ?? "image";
   // *stars* mark emphasis on photo posts; show the plain words here.
   const hook = (d.brief?.hook ?? d.plan?.copy.caption ?? id).replace(/\*([^*\n]+)\*/g, "$1");
+  const saved = savedCaption(id);
   const isSlides = d.plan?.post_kind === "slides";
   const isText = d.plan?.renderer === "typographic";
   const isMontage = d.plan?.renderer === "montage";
   const hasMedia = d.survivors.some((v) => v.media !== null);
+  const since = hasMedia ? null : generatingSince(id);
+  const keys = hasKeys();
+  const credits = d.plan?.estimated_credits ?? 0;
 
   return (
     <div className="flex flex-col h-screen">
@@ -74,10 +80,32 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
                 </svg>
               </div>
               <div className="text-center max-w-xs">
-                <div className="font-display text-lg font-medium">Not generated yet</div>
-                <div className="text-sm text-muted mt-1">
-                  Add your API keys to <code className="text-xs">.env</code> and click Generate, or re-run from the hero stage.
-                </div>
+                {since ? (
+                  <>
+                    <div className="font-display text-lg font-medium">Generating…</div>
+                    <div className="text-sm text-muted mt-1">
+                      Started {Math.max(1, Math.round((Date.now() - since) / 60000))} min ago. Images, scores and the caption
+                      usually take 1–3 minutes — this page refreshes itself.
+                    </div>
+                    <AutoRefresh seconds={10} />
+                  </>
+                ) : (
+                  <>
+                    <div className="font-display text-lg font-medium">Not generated yet</div>
+                    <div className="text-sm text-muted mt-1">
+                      {keys ? (
+                        <>
+                          Pick <b>hero</b> and click <b>Re-run</b> to generate{credits ? ` (~${credits} credits)` : ""}. The caption is a
+                          placeholder until then.
+                        </>
+                      ) : (
+                        <>
+                          Add your API keys to <code className="text-xs">.env</code>, then re-run from the hero stage.
+                        </>
+                      )}
+                    </div>
+                  </>
+                )}
               </div>
             </div>
           ) : isMontage && top ? (
@@ -184,7 +212,9 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
                   ? "Text posts are checked for contrast and fit (below); no vision scoring."
                   : isMontage
                     ? "Videos are checked for length and platform fit (below); no vision scoring."
-                    : undefined
+                    : !hasMedia
+                      ? "Nothing generated yet — scores appear after generation."
+                      : undefined
               }
             />
             {top?.card?.reasons && top.card.reasons.length > 0 && (
@@ -226,8 +256,10 @@ export default async function BriefPage({ params }: { params: Promise<{ id: stri
             <h2 className="m-0 font-display text-lg font-medium">Caption</h2>
             <CaptionBox
               briefId={id}
-              initial={d.plan?.copy.caption ?? ""}
-              hashtags={d.plan?.copy.hashtags ?? []}
+              // A caption saved from this box (already including its hashtags) wins over the
+              // AI one — before, saved edits were written to disk but never shown again.
+              initial={saved ?? d.plan?.copy.caption ?? ""}
+              hashtags={saved ? [] : d.plan?.copy.hashtags ?? []}
             />
           </section>
 

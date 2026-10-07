@@ -64,7 +64,7 @@ function templateMenu(templates: Template[]): string {
         `- key: ${t.key} — ${t.name}: ${t.description}`,
         `  hook = ${t.hook_label ?? "the main line"}`,
         t.asks_body ? `  body = ${t.body_label ?? "outline"}. Example body:\n${(t.body_placeholder ?? "").trim().split("\n").map((l) => `    ${l}`).join("\n")}` : "  body = empty",
-        t.asks_photo ? "  scene = describe a realistic photo for the background (people, place, action; no text in it)" : "",
+        t.asks_photo ? "  scene = ONE realistic photo for the background: people, place, action, mood. Never documents, papers, screens, charts, whiteboards or anything with writing (image models garble text); no collage." : "",
       ]
         .filter(Boolean)
         .join("\n"),
@@ -157,6 +157,8 @@ export async function draftPost(
   for (let attempt = 0; attempt < 2; attempt++) {
     const draft = DraftSchema.parse(await ask(prompt, DRAFT_JSON, routes, SYSTEM));
     if (fixed) draft.template = fixed.key;
+    // *stars* emphasise words only on photo layouts; elsewhere they'd print literally.
+    if (!all.find((t) => t.key === draft.template)?.asks_photo) draft.hook = draft.hook.replace(/\*([^*\n]+)\*/g, "$1");
     const problem = problemWith(draft, all.find((t) => t.key === draft.template), brand, brandKey, routes);
     if (!problem) return draft;
     prompt = `${base}\n\nYour previous draft had a problem: ${problem}. Fix it and return the full draft again.`;
@@ -169,6 +171,10 @@ export const IdeaSchema = z.object({
   template: z.string().min(1),
   notes: z.string().min(1),
   why: z.string(),
+  /** News ideas: the verified story the idea comes from (the post's caption cites it). */
+  source: z
+    .object({ title: z.string(), url: z.string(), publisher: z.string().optional(), date: z.string().optional() })
+    .optional(),
 });
 export type Idea = z.infer<typeof IdeaSchema>;
 
@@ -212,3 +218,97 @@ export async function suggestIdeas(brand: Brand, routes: Routes, count = 6): Pro
     .filter((i) => keys.has(i.template))
     .slice(0, count);
 }
+
+const NEWS_IDEAS_JSON: Schema = {
+  type: "object",
+  properties: {
+    ideas: {
+      type: "array",
+      items: {
+        type: "object",
+        properties: {
+          story: { type: "integer", description: "number of the news story this idea is about" },
+          title: { type: "string", description: "the post idea in a few words" },
+          template: { type: "string", description: "best post type key (prefer photo-headline)" },
+          take: { type: "string", description: "the brand's angle in 1-2 sentences: what this news means for the audience" },
+          why: { type: "string", description: "why this will land with the audience" },
+        },
+        required: ["story", "title", "template", "take", "why"],
+        additionalProperties: false,
+      },
+    },
+  },
+  required: ["ideas"],
+  additionalProperties: false,
+};
+
+/**
+ * "What's new": post ideas from this week's verified news in the brand's field (news.ts),
+ * each written as the brand's take on the story — not a news summary. The idea's notes
+ * carry the story's facts and link, so the drafted post and its caption stay sourced.
+ */
+export async function newsIdeas(
+  brand: Brand,
+  routes: Routes,
+  count = 5,
+): Promise<{ ideas: Idea[]; news: NewsPick[]; searched: number }> {
+  const { findNews } = await import("./news");
+  const stories = await findNews(brand, routes, { days: 14, max: 8 });
+  if (!stories.length) throw new Error("no recent stories with a working link were found for this brand's field; try again later");
+  const templates = writableTemplates();
+  const prompt = [
+    brandBrief(brand),
+    "",
+    "This week's news in the brand's field (verified links):",
+    stories.map((s, i) => `${i + 1}. [${s.date}, ${s.publisher}] ${s.headline} — ${s.summary}`).join("\n"),
+    "",
+    `Pick the ${Math.min(count, stories.length)} stories that matter most to the brand's audience and turn each into a post idea.`,
+    "Each idea is the brand's TAKE: what the news means for the audience's work, decisions or risks — in the brand's voice and point of view. Not a summary, no hype.",
+    "Use only facts from the story; claims about the brand only from its proof points.",
+    "Post types:",
+    templates.map((t) => `- ${t.key}: ${t.name} — ${t.description}`).join("\n"),
+  ].join("\n");
+  const raw = (await ask(prompt, NEWS_IDEAS_JSON, routes, SYSTEM)) as {
+    ideas?: { story: number; title: string; template: string; take: string; why: string }[];
+  };
+  const keys = new Set(templates.map((t) => t.key));
+  const ideas: Idea[] = [];
+  for (const i of raw.ideas ?? []) {
+    const s = stories[i.story - 1];
+    if (!s) continue;
+    ideas.push({
+      title: i.title,
+      template: keys.has(i.template) ? i.template : "photo-headline",
+      why: i.why,
+      notes: [
+        `News (${s.date}, ${s.publisher}): ${s.headline}. ${s.summary}`,
+        `Source: ${s.url}`,
+        `Our take: ${i.take}`,
+        "Write the post as the brand's take on this story. State only facts from the story; name the source.",
+      ].join("\n"),
+      source: { title: s.headline, url: s.url, publisher: s.publisher, date: s.date },
+    });
+  }
+  // Every verified story is offered so the rep can pick any of them; the ones the AI
+  // judged most relevant carry its suggested angle and post type.
+  const picked = ideas.slice(0, count);
+  const news: NewsPick[] = stories.map((s) => {
+    const idea = picked.find((i) => i.source?.url === s.url);
+    return {
+      ...s,
+      ...(idea ? { idea } : {}),
+      notes:
+        idea?.notes ??
+        [
+          `News (${s.date}, ${s.publisher}): ${s.headline}. ${s.summary}`,
+          `Source: ${s.url}`,
+          "Write the post as the brand's take on this story for its audience. State only facts from the story; name the source.",
+        ].join("\n"),
+    };
+  });
+  news.sort((a, b) => Number(!!b.idea) - Number(!!a.idea));
+  return { ideas: picked, news, searched: stories.length };
+}
+
+/** A verified story the rep can pick; `idea` = the AI's suggested angle, when it chose one. */
+export type NewsPick = import("./news").NewsItem & { notes: string; idea?: Idea };

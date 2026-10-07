@@ -17,6 +17,7 @@ import { join } from "node:path";
 import { stringify as yamlStringify } from "yaml";
 import {
   PATHS,
+  BriefSchema,
   loadEnv,
   loadTemplate,
   loadBrand,
@@ -89,6 +90,16 @@ const inputs: JobInputs = {
 };
 
 const brief = jobFromTemplate(template, inputs);
+// --source-url/--source-title [--source-publisher --source-date]: the news story a post is
+// about; the caption names and links it.
+if (arg("source-url")) {
+  brief.source = BriefSchema.shape.source.unwrap().parse({
+    title: arg("source-title") ?? arg("source-url"),
+    url: arg("source-url"),
+    ...(arg("source-publisher") ? { publisher: arg("source-publisher") } : {}),
+    ...(arg("source-date") ? { date: arg("source-date") } : {}),
+  });
+}
 // Text posts: one variant per colour theme the brand uses (dark / light / brand).
 if (template.renderer === "typographic" && brand.themes?.length && !arg("variants")) {
   brief.variants = brand.themes.length;

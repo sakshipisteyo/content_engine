@@ -75,6 +75,7 @@ Two packages in a pnpm workspace (`pnpm-workspace.yaml`, `node-linker=hoisted`):
 | `packages/engine/src/intake.ts` | Brand intake: wizard answers (`IntakeSchema`) -> validated Brand (`brandFromIntake`) |
 | `packages/engine/src/photo.ts` | Photo text posts: photo headline and stat card over a photo (or brand gradient) |
 | `packages/engine/src/ideate.ts` | AI writer: drafts a post (type + every field) from notes, suggests ideas; Claude via the Anthropic SDK |
+| `packages/engine/src/news.ts` | "What's new": web search (OpenRouter web plugin) for recent news in the brand's field, kept only if the URL came from the search, is recent and opens |
 | `packages/engine/src/video.ts` | Local video editor on the bundled ffmpeg: segments, camera moves, brand cards and captions, fades, music/voice, 16:9 / 9:16 / 1:1 |
 | `packages/engine/src/montage.ts` | Video posts: plans the edit (`planMontage`) and renders it (`runMontage`), draft (free) or full (Higgsfield) |
 | `packages/engine/src/memory.ts` | Brand memory: the feedback loop from decisions into the next compile |
@@ -175,6 +176,12 @@ every field (hook with emphasis, body in that template's format, attribution, ph
 scene, CTA, pillar) plus a one-line "why". "Give me ideas" returns post ideas spread
 across pillars and formats; clicking one drafts it. The user reviews and edits, then
 generates — nothing renders or spends without that click.
+
+"What's new" (`newsIdeas` + `news.ts`) searches the web for the last 14 days of news in the
+brand's field (built from category, offer, pillars, audience) and turns the stories that
+matter to its audience into post ideas written as the brand's take. Trust rules: only URLs
+the search returned, inside the window, that open. The chosen story travels as
+`brief.source`; the caption names the publisher and ends with the link.
 
 - **Model and API:** Claude via the official Anthropic SDK (`providers/anthropic.ts`),
   model and effort from `routes.yaml` `ideate` (`claude-opus-5-5`, `medium`), structured

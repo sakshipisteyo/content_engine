@@ -129,7 +129,12 @@ export function brandImages(brand: Brand, brandKey: string): string[] {
     ...Object.values(brand.products).flatMap((p) => p.images),
     ...Object.values(brand.style_anchors).flatMap((a) => a.references),
   ];
-  return [...new Set(rels)].map((r) => brandAssetPath(brandKey, r)).filter((p) => existsSync(p) && isImage(p));
+  // A logo is not a photo: as a background or AI reference it gets painted into the scene.
+  const logos = new Set([brand.logo, brand.social?.avatar].filter(Boolean));
+  return [...new Set(rels)]
+    .filter((r) => !logos.has(r))
+    .map((r) => brandAssetPath(brandKey, r))
+    .filter((p) => existsSync(p) && isImage(p));
 }
 
 /**
@@ -220,9 +225,15 @@ export function planMontage(brief: Brief, brand: Brand, brandKey: string, templa
 
   const intro: PlannedShot = {
     type: "card",
-    title: brief.hook,
-    // The angle defaults to the template name; only a real angle or the offer is worth showing.
-    ...(brand.offer || brief.angle !== template.name ? { subtitle: brand.offer ?? brief.angle } : {}),
+    // *stars* emphasise words on photo posts; the video card draws plain text.
+    title: brief.hook.replace(/\*([^*\n]+)\*/g, "$1"),
+    // A real angle (not the template-name default) is worth showing; the offer only when it
+    // reads like a tagline — a long intake description looks like notes on screen.
+    ...(brief.angle !== template.name
+      ? { subtitle: brief.angle }
+      : brand.offer && brand.offer.length <= 60
+        ? { subtitle: brand.offer }
+        : {}),
     seconds: 3,
     fit: "cover",
   };
@@ -352,6 +363,8 @@ export async function runMontage(
   const { w: pw, h: ph } = VIDEO_SIZE[primary];
   const segments: Segment[] = [];
   const notes: string[] = [];
+  /** Presenter speech (full mode): each Speak clip's voice and its start on the timeline. */
+  const presenterVoices: { path: string; at: number }[] = [];
   let spent = 0;
   let motions: import("./providers/higgsfield").MotionPreset[] | null = null;
 
@@ -448,6 +461,8 @@ export async function runMontage(
         const credits = bucket * ctx.routes.speak!.credits_per_second;
         spent += credits;
         record("motion", "ok", credits, ctx.routes.speak!.endpoint);
+        // The editor drops clip audio, so lay this voice back in where the clip starts.
+        presenterVoices.push({ path: wav, at: segments.reduce((a, g) => a + (g.seconds ?? 4), 0) });
         // One clip, cut into a segment per sentence so captions follow the speech.
         const lines = sentencesOf(s.prompt!);
         const total = Math.min(len + 0.3, bucket);
@@ -485,6 +500,19 @@ export async function runMontage(
       notes.push(`voiceover skipped: ${(e as Error).message}`);
       voice = undefined;
     }
+  }
+
+  // Presenter videos: the speech is the voice track. renderVideo encodes segments without
+  // their audio, so the Speak clips' sound was lost and finished videos came out silent.
+  if (!voice && presenterVoices.length) {
+    const track = join(work, "presenter_voice.wav");
+    const inputs = presenterVoices.flatMap((v) => ["-i", v.path]);
+    const delays = presenterVoices.map((v, k) => `[${k}:a]adelay=${Math.round(v.at * 1000)}|${Math.round(v.at * 1000)}[p${k}]`);
+    const mix = presenterVoices.length === 1
+      ? `${delays[0]!.replace(/\[p0\]$/, "[a]")}`
+      : `${delays.join(";")};${presenterVoices.map((_, k) => `[p${k}]`).join("")}amix=inputs=${presenterVoices.length},volume=${presenterVoices.length}[a]`;
+    await ffmpeg(["-y", ...inputs, "-filter_complex", mix, "-map", "[a]", "-ar", "44100", "-ac", "2", track]);
+    voice = track;
   }
 
   const style = videoStyle(ctx);

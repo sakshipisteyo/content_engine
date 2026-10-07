@@ -1,5 +1,6 @@
 # Text-to-image prompt template (SPEC: prompt strings live only in YAML).
-# compile.ts interpolates {{tokens}} from the brief + brand; in a real run Claude
+# compile.ts interpolates {{tokens}} from the brief + brand (never the platform name: image
+# models paint it on as a logo); in a real run Claude
 # refines the interpolated text. Seed with the best Higgsfield/Seedream prompts here.
 system: >
   You are a senior art director writing a single text-to-image prompt for a brand
@@ -10,9 +11,11 @@ template: >
   {{template_image_directive}} {{product_image_note}}
   Mood: {{tone}}. The scene expresses: "{{hook}}". Creative angle: {{angle}}.
   Editorial product photography, natural directional light, shallow depth of field,
-  colours drawn from the brand palette {{palette}}. Composed for {{platform}} at
-  {{aspect}}. High detail, photoreal, no text, no logo, no watermark.
+  colours drawn from the brand palette {{palette}}. Composed as a {{aspect}} social
+  feed image. High detail,
+  photoreal, no text, no logo, no watermark.
 negative: >
   text, watermark, logo, caption, extra fingers, deformed hands, distorted proportions,
-  low resolution, jpeg artefacts, oversaturated, plastic skin, {{banned_visuals}},
+  low resolution, jpeg artefacts, oversaturated, plastic skin, social media logos,
+  app icons, brand patches, {{banned_visuals}},
   {{template_negative}}

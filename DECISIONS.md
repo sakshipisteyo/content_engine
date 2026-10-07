@@ -321,3 +321,36 @@ decide and note the decision here." Newest first.
 
 62. **Drafts are validated against the template and retried once**, so a malformed outline
     surfaces as a clear error instead of a broken post.
+
+## 2026-10-07: news ideas, background quality, honest captions, video fixes
+
+63. **"What's new" ideas come from a live web search, filtered for trust.** OpenRouter's web
+    plugin (the existing key, ~3 cents) searches the brand's field (category, offer, pillars,
+    audience), so it works for any industry. A story is kept only if its URL is one the search
+    returned (the model can't invent a story + plausible link), it is dated inside the window
+    and the link opens. Ideas are the brand's take, never a news summary; the post carries the
+    source and its caption names and links it (`brief.source`).
+
+64. **AI backgrounds follow the brand's imagery rules and are vision-checked.** The scene prompt
+    adds the first style anchor, palette and `banned_visuals`, and forbids lettering, documents,
+    diagrams and collages (image models garble text). A vision check flags garbled text or a
+    collage and regenerates once within the credit cap. Logos are never used as photos or AI
+    references (brand intake no longer sets the logo as the style reference).
+
+65. **LinkedIn captions are full posts, and invented numbers are rejected.** LinkedIn briefs get
+    a 110-200 word post (hook line, short paragraphs, a question). Examples must be framed as
+    hypotheticals, never the brand's own experience; a caption with numbers absent from the
+    facts (hook, outline, source, proof points) is rewritten once. Hashtags always get their
+    `#`; `*emphasis*` stars are stripped from captions; the platform name is kept out of
+    image prompts (models painted it on as a logo).
+
+66. **Higgsfield uploads send the API's `upload_headers`.** The presigned S3 URL is now also
+    signed for `x-amz-tagging`; SDK 0.2.6 (latest) sends only Content-Type, so every upload
+    failed with 403 SignatureDoesNotMatch (product demo, cinematic and presenter videos).
+
+67. **Presenter speech is laid back in by timeline position.** The editor encodes segments
+    without audio, so talking-avatar videos came out silent; each Speak clip's voice is now
+    mixed in at its start time (ffmpeg 4.1 compatible: `adelay` per channel, `amix`).
+
+68. **The caption box shows the saved caption.** Edits were written to `caption.txt` but the
+    board always re-showed the AI caption.

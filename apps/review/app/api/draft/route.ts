@@ -5,15 +5,17 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 300;
 
 /**
- * AI writer. POST { brand, notes?, template? } -> { draft }, or { brand, ideas: true } -> { ideas }.
+ * AI writer. POST { brand, notes?, template? } -> { draft }, { brand, ideas: true } -> { ideas },
+ * or { brand, news: true } -> { ideas, searched } from this week's verified news.
  * Runs scripts/draft.ts (Claude via the Anthropic SDK, OpenRouter fallback).
  */
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => null)) as { brand?: string; notes?: string; template?: string; ideas?: boolean } | null;
+  const body = (await req.json().catch(() => null)) as { brand?: string; notes?: string; template?: string; ideas?: boolean; news?: boolean } | null;
   const brand = body?.brand ?? "";
   if (!/^[a-z0-9][a-z0-9-]{0,60}$/.test(brand)) return Response.json({ error: "pick a brand first" }, { status: 400 });
   const args = [...engineArgs("draft"), "--brand", brand];
-  if (body?.ideas) args.push("--ideas");
+  if (body?.news) args.push("--news");
+  else if (body?.ideas) args.push("--ideas");
   else {
     if (body?.notes?.trim()) args.push("--notes", body.notes.trim().slice(0, 6000));
     if (body?.template && /^[a-z0-9-]{1,60}$/.test(body.template)) args.push("--template", body.template);
